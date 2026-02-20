@@ -1,0 +1,140 @@
+:root {
+  --bg: #f3f5f9;
+  --surface: #fff;
+  --line: #d9dfe7;
+  --text: #1c2733;
+  --muted: #637285;
+  --brand: #0d5cc5;
+  --danger: #b12424;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: linear-gradient(180deg, #eef3fa 0%, #f8fbff 100%);
+  color: var(--text);
+}
+
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 { margin: 0; }
+.topbar p { margin: 4px 0 0; color: var(--muted); }
+
+.tabs {
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabs button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.tabs button.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.auth-card {
+  max-width: 420px;
+  margin: 8vh auto;
+  text-align: center;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.one-col { grid-template-columns: 1fr; }
+
+input, select, button {
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+}
+
+button:hover { opacity: 0.95; }
+
+.mini-btn {
+  margin-left: 10px;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.toolbar input { flex: 1; }
+
+.list { margin: 0; padding-left: 18px; }
+.list li { margin-bottom: 8px; }
+
+.error { color: var(--danger); font-weight: 600; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.stat span { color: var(--muted); }
+.stat strong { display: block; font-size: 1.3rem; margin-top: 6px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+}

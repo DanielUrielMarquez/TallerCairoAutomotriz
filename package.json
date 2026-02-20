@@ -15,8 +15,19 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix cliente start"
   },
   "dependencies": {
-    "@admin-bro/express": "^3.
+    "@admin-bro/express": "^3.1.0",
+    "admin-bro": "^4.0.1",
+    "express": "^5.2.1",
+    "express-formidable": "^1.2.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
