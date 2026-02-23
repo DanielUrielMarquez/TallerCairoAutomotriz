@@ -1,9 +1,33 @@
+# dependencies
 node_modules/
-server/node_modules/
 cliente/node_modules/
+server/node_modules/
+
+# builds
 build/
 dist/
+cliente/build/
+server/dist/
+
+# env
 .env
 .env.*
-coverage/
+!.env.example
+
+# logs
 *.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# coverage
+coverage/
+
+# docs pesados / temporales
+*.zip
+*.rar
+*.7z

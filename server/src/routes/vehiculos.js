@@ -2,7 +2,9 @@ const { Router } = require("express");
 const db = require("../data/db");
 
 const router = Router();
+const ESTADOS = ["en_taller", "reingresado", "entregado"];
 
+// Listar vehículos + cliente, con filtro por texto
 router.get("/", (req, res) => {
   const q = (req.query.q || "").toLowerCase();
 
@@ -23,17 +25,21 @@ router.get("/", (req, res) => {
   res.json(data);
 });
 
+// Crear vehículo
 router.post("/", (req, res) => {
   const { clienteId, marca, modelo, patente, fechaEntrada, fechaLimite, diagnostico } = req.body;
+
   if (!clienteId || !marca || !modelo || !patente || !fechaEntrada || !fechaLimite) {
     return res.status(400).json({ error: "Faltan campos obligatorios" });
   }
 
   const clienteExiste = db.clientes.some((c) => c.id === Number(clienteId));
-  if (!clienteExiste) return res.status(400).json({ error: "clienteId invalido" });
+  if (!clienteExiste) return res.status(400).json({ error: "clienteId inválido" });
 
-  const existePatente = db.vehiculos.some((v) => v.patente.toLowerCase() === patente.toLowerCase());
-  if (existePatente) return res.status(409).json({ error: "La patente ya existe" });
+  const patenteExiste = db.vehiculos.some(
+    (v) => v.patente.toLowerCase() === patente.toLowerCase()
+  );
+  if (patenteExiste) return res.status(409).json({ error: "La patente ya existe" });
 
   const nuevo = {
     id: db.counters.vehiculo++,
@@ -52,13 +58,30 @@ router.post("/", (req, res) => {
   res.status(201).json(nuevo);
 });
 
-router.patch("/:id/salida", (req, res) => {
+// Cambiar estado manual (incluye reingresado)
+router.patch("/:id/estado", (req, res) => {
   const id = Number(req.params.id);
-  const vehiculo = db.vehiculos.find((v) => v.id === id);
-  if (!vehiculo) return res.status(404).json({ error: "Vehiculo no encontrado" });
+  const { estado } = req.body;
 
-  vehiculo.fechaSalida = req.body.fechaSalida || new Date().toISOString().slice(0, 10);
-  vehiculo.estado = "entregado";
+  if (!ESTADOS.includes(estado)) {
+    return res.status(400).json({ error: "estado inválido" });
+  }
+
+  const vehiculo = db.vehiculos.find((v) => v.id === id);
+  if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
+
+  vehiculo.estado = estado;
+
+  // Si vuelve al taller/reingresa, se limpia fecha de salida
+  if (estado === "en_taller" || estado === "reingresado") {
+    vehiculo.fechaSalida = null;
+  }
+
+  // Si pasa a entregado y no tenía fecha, se completa
+  if (estado === "entregado" && !vehiculo.fechaSalida) {
+    vehiculo.fechaSalida = new Date().toISOString().slice(0, 10);
+  }
+
   res.json(vehiculo);
 });
 
