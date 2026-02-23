@@ -14,10 +14,12 @@ const PORT = process.env.PORT || 4000;
 // Dominios permitidos (local + producción)
 const allowedOrigins = [
   "http://localhost:3000",
+  "https://tallercairoautomotriz-1.onrender.com",
   "https://administraciontaller.com",
   "https://www.administraciontaller.com",
   process.env.FRONTEND_URL
 ].filter(Boolean);
+
 
 app.use(express.json());
 
