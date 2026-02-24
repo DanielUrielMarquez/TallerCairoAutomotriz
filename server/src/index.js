@@ -37,9 +37,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/", (req, res) => {
-  res.send("API Taller Cairo funcionando");
-});
 
 app.use("/api/auth", authRouter);
 app.use("/api/clientes", clientesRouter);
@@ -49,13 +46,14 @@ app.use("/api/recursos", recursosRouter);
 app.use("/api/asistencias", asistenciasRouter);
 app.use("/api/reportes", reportesRouter);
 
-const path = require("path");
+const path = require("node:path");
 
-// Servir frontend compilado
+// Servir build de React
 app.use(express.static(path.join(__dirname, "../../cliente/build")));
 
-// Fallback para rutas del frontend
-app.get("*", (req, res) => {
+// Fallback SPA (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
   res.sendFile(path.join(__dirname, "../../cliente/build/index.html"));
 });
 
