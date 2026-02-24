@@ -49,6 +49,17 @@ app.use("/api/recursos", recursosRouter);
 app.use("/api/asistencias", asistenciasRouter);
 app.use("/api/reportes", reportesRouter);
 
+const path = require("path");
+
+// Servir frontend compilado
+app.use(express.static(path.join(__dirname, "../../cliente/build")));
+
+// Fallback para rutas del frontend
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../cliente/build/index.html"));
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
