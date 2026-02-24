@@ -7,6 +7,8 @@ const tareasRouter = require("./routes/tareas");
 const recursosRouter = require("./routes/recursos");
 const asistenciasRouter = require("./routes/asistencias");
 const reportesRouter = require("./routes/reportes");
+const usuariosRouter = require("./routes/usuarios");
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -21,6 +23,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(express.json());
+app.use("/api/usuarios", usuariosRouter);
 
 // CORS
 app.use((req, res, next) => {

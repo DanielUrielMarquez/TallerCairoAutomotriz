@@ -87,5 +87,13 @@ export const api = {
       body: JSON.stringify(data)
     })),
 
-  getResumen: async () => parseResponse(await fetch(`${API_URL}/api/reportes/resumen`))
+  getResumen: async () => parseResponse(await fetch(`${API_URL}/api/reportes/resumen`)),
+
+  getUsuarios: async () => parseResponse(await fetch(`${API_URL}/api/usuarios`)),
+  createUsuario: async (data) =>
+    parseResponse(await fetch(`${API_URL}/api/usuarios`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data)
+    }))
 };
