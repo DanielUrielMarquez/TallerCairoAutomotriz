@@ -11,7 +11,7 @@ const reportesRouter = require("./routes/reportes");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Dominios permitidos (local + producción)
+// Orígenes permitidos
 const allowedOrigins = [
   "http://localhost:3000",
   "https://tallercairoautomotriz-1.onrender.com",
@@ -20,9 +20,9 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-
 app.use(express.json());
 
+// CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
