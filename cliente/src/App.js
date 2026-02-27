@@ -2,8 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "./services/api";
 import "./App.css";
 
-// Estados posibles de las tareas
 const ESTADOS_TAREA = ["abierta", "en_proceso", "cerrada"];
+const TABS_BASE = ["clientes", "vehiculos", "tareas", "recursos", "asistencia", "reportes"];
+
+const OPCIONES_TAREA = [
+  "Cambio de aceite",
+  "Cambio de filtro de aceite",
+  "Cambio de pastillas de freno",
+  "Alineacion y balanceo",
+  "Diagnostico electrico",
+  "Revision general",
+  "__otra__"
+];
 
 function App() {
   const [tab, setTab] = useState(() => localStorage.getItem("tab_actual") || "clientes");
@@ -12,36 +22,23 @@ function App() {
     return raw ? JSON.parse(raw) : null;
   });
 
-  // Roles y pestañas visibles según perfil
   const esAdmin = usuario?.rol === "administrador";
-  const tabsVisibles = esAdmin
-    ? ["clientes", "vehiculos", "tareas", "recursos", "asistencia", "reportes", "usuarios"]
-    : ["clientes", "vehiculos", "tareas", "recursos", "asistencia"];
+  const tabsVisibles = esAdmin ? [...TABS_BASE, "usuarios"] : TABS_BASE;
 
-  // Estados globales de UI
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Datos principales traídos del backend
   const [resumen, setResumen] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
-
-  // Usuarios (solo admin)
   const [usuarios, setUsuarios] = useState([]);
-  const [nuevoUsuario, setNuevoUsuario] = useState({
-    username: "",
-    password: "",
-    rol: "trabajador"
-  });
+  const [trabajadores, setTrabajadores] = useState([]);
 
-  // Formulario de login
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
 
-  // Formularios de cada módulo
   const [nuevoCliente, setNuevoCliente] = useState({ nombre: "", telefono: "", email: "" });
 
   const [busquedaVehiculo, setBusquedaVehiculo] = useState("");
@@ -51,8 +48,7 @@ function App() {
     modelo: "",
     patente: "",
     fechaEntrada: "",
-    fechaLimite: "",
-    diagnostico: ""
+    fechaLimite: ""
   });
 
   const [nuevaTarea, setNuevaTarea] = useState({
@@ -63,6 +59,7 @@ function App() {
     fechaLimite: "",
     total: ""
   });
+  const [otraDescripcionTarea, setOtraDescripcionTarea] = useState("");
 
   const [nuevoRecurso, setNuevoRecurso] = useState({
     nombre: "",
@@ -72,23 +69,20 @@ function App() {
   });
 
   const [nuevaAsistencia, setNuevaAsistencia] = useState({
-    trabajadorId: "1",
+    trabajadorId: "",
     fecha: "",
     estado: "presente"
   });
 
   const [filtroAsistenciaFecha, setFiltroAsistenciaFecha] = useState("");
 
-  // Lista única de trabajadores desde tareas
-  const trabajadores = useMemo(() => {
-    const map = {};
-    tareas.forEach((t) => {
-      if (t.trabajador) map[t.trabajador.id] = t.trabajador;
-    });
-    return Object.values(map);
-  }, [tareas]);
+  const [nuevoTrabajador, setNuevoTrabajador] = useState({
+    username: "",
+    password: "",
+    nombre: "",
+    especialidad: "General"
+  });
 
-  // Resumen asistencia
   const resumenAsistencia = useMemo(() => {
     const presentes = asistencias.filter((a) => a.estado === "presente").length;
     const ausentes = asistencias.filter((a) => a.estado === "ausente").length;
@@ -98,27 +92,37 @@ function App() {
     return { presentes, ausentes, tarde, total, porcentaje };
   }, [asistencias]);
 
-  // Total acumulado de tareas
-  const totalTareas = useMemo(() => {
-    return tareas.reduce((acc, t) => acc + Number(t.total || 0), 0);
-  }, [tareas]);
+  const totalTareas = useMemo(
+    () => tareas.reduce((acc, t) => acc + Number(t.total || 0), 0),
+    [tareas]
+  );
 
-  // Carga general
+  const trabajadorPorUsuario = useMemo(() => {
+    const map = {};
+    trabajadores.forEach((t) => {
+      if (t.usuarioId) map[t.usuarioId] = t;
+    });
+    return map;
+  }, [trabajadores]);
+
   async function cargarTodo() {
     try {
       setLoading(true);
       setError("");
 
-      const basePromises = [
+      const [r, c, v, t, rc, a, w, u] = await Promise.all([
         api.getResumen(),
         api.getClientes(),
         api.getVehiculos(busquedaVehiculo),
         api.getTareas(),
         api.getRecursos(),
-        api.getAsistencias(filtroAsistenciaFecha)
-      ];
+        api.getAsistencias(filtroAsistenciaFecha),
+        api.getTrabajadores(),
+        esAdmin ? api.getUsuarios() : Promise.resolve([])
+      ]);
 
-      const [r, c, v, t, rc, a] = await Promise.all(basePromises);
+      const fallo = [r, c, v, t, rc, a, w, u].find((x) => x?.error);
+      if (fallo) throw new Error(fallo.error);
 
       setResumen(r);
       setClientes(c);
@@ -126,36 +130,32 @@ function App() {
       setTareas(t);
       setRecursos(rc);
       setAsistencias(a);
-
-      if (esAdmin && api.getUsuarios) {
-        const us = await api.getUsuarios();
-        if (!us.error) setUsuarios(us);
-      }
-    } catch {
-      setError("No se pudo cargar la información.");
+      setTrabajadores(Array.isArray(w) ? w : []);
+      setUsuarios(Array.isArray(u) ? u : []);
+    } catch (e) {
+      setError(`No se pudo cargar la informacion: ${e.message || "error inesperado"}`);
     } finally {
       setLoading(false);
     }
   }
 
-  // Cargar cuando hay sesión
   useEffect(() => {
     if (usuario) cargarTodo();
-  }, [usuario]);
+  }, [usuario, esAdmin]);
 
-  // Si cambia de rol o tab inválida, volver a clientes
-  useEffect(() => {
-    if (!tabsVisibles.includes(tab)) {
-      setTab("clientes");
-    }
-  }, [tab, tabsVisibles]);
-
-  // Persistir pestaña
   useEffect(() => {
     localStorage.setItem("tab_actual", tab);
   }, [tab]);
 
-  // Login
+  useEffect(() => {
+    if (trabajadores.length && !nuevaAsistencia.trabajadorId) {
+      setNuevaAsistencia((prev) => ({
+        ...prev,
+        trabajadorId: String(trabajadores[0].id)
+      }));
+    }
+  }, [trabajadores, nuevaAsistencia.trabajadorId]);
+
   async function onLogin(e) {
     e.preventDefault();
     setError("");
@@ -167,31 +167,32 @@ function App() {
     localStorage.setItem("usuario_sesion", JSON.stringify(res.usuario));
   }
 
-  // Logout
   function cerrarSesion() {
     setUsuario(null);
     setTab("clientes");
     setError("");
     setLoginForm({ username: "", password: "" });
     localStorage.removeItem("usuario_sesion");
+    localStorage.removeItem("tab_actual");
   }
 
-  // Crear cliente
   async function crearCliente(e) {
     e.preventDefault();
     const res = await api.createCliente(nuevoCliente);
     if (res.error) return setError(res.error);
+
     setNuevoCliente({ nombre: "", telefono: "", email: "" });
     cargarTodo();
   }
 
-  // Crear vehículo
   async function crearVehiculo(e) {
     e.preventDefault();
+
     const res = await api.createVehiculo({
       ...nuevoVehiculo,
       clienteId: Number(nuevoVehiculo.clienteId)
     });
+
     if (res.error) return setError(res.error);
 
     setNuevoVehiculo({
@@ -200,28 +201,36 @@ function App() {
       modelo: "",
       patente: "",
       fechaEntrada: "",
-      fechaLimite: "",
-      diagnostico: ""
+      fechaLimite: ""
     });
+
     cargarTodo();
   }
 
-  // Cambiar estado vehículo
   async function cambiarEstadoVehiculo(id, estado) {
     const res = await api.updateEstadoVehiculo(id, estado);
     if (res.error) return setError(res.error);
     cargarTodo();
   }
 
-  // Crear tarea
   async function crearTarea(e) {
     e.preventDefault();
+
+    const descripcionFinal =
+      nuevaTarea.descripcion === "__otra__"
+        ? otraDescripcionTarea.trim()
+        : nuevaTarea.descripcion;
+
+    if (!descripcionFinal) return setError("La descripcion de la tarea es obligatoria");
+
     const res = await api.createTarea({
       ...nuevaTarea,
+      descripcion: descripcionFinal,
       vehiculoId: Number(nuevaTarea.vehiculoId),
       trabajadorId: Number(nuevaTarea.trabajadorId),
       total: Number(nuevaTarea.total || 0)
     });
+
     if (res.error) return setError(res.error);
 
     setNuevaTarea({
@@ -232,68 +241,88 @@ function App() {
       fechaLimite: "",
       total: ""
     });
+    setOtraDescripcionTarea("");
+
     cargarTodo();
   }
 
-  // Cambiar estado tarea
   async function cambiarEstadoTarea(id, estado) {
     const res = await api.updateEstadoTarea(id, estado);
     if (res.error) return setError(res.error);
     cargarTodo();
   }
 
-  // Crear recurso/repuesto
   async function crearRecurso(e) {
     e.preventDefault();
     const res = await api.createRecurso(nuevoRecurso);
     if (res.error) return setError(res.error);
+
     setNuevoRecurso({ nombre: "", tipo: "repuesto", stock: "", minimo: "" });
     cargarTodo();
   }
 
-  // Consumir recurso
   async function consumirRecurso(id) {
     const res = await api.consumirRecurso(id, 1);
     if (res.error) return setError(res.error);
     cargarTodo();
   }
 
-  // Reponer recurso
   async function reponerRecurso(id) {
     const res = await api.reponerRecurso(id, 1);
     if (res.error) return setError(res.error);
     cargarTodo();
   }
 
-  // Crear asistencia
   async function crearAsistencia(e) {
     e.preventDefault();
+
     const res = await api.createAsistencia({
       ...nuevaAsistencia,
       trabajadorId: Number(nuevaAsistencia.trabajadorId)
     });
+
     if (res.error) return setError(res.error);
-    setNuevaAsistencia({ trabajadorId: "1", fecha: "", estado: "presente" });
-    cargarTodo();
-  }
 
-  // Crear usuario (solo admin)
-  async function crearUsuario(e) {
-    e.preventDefault();
-    if (!api.createUsuario) return;
-
-    const res = await api.createUsuario({
-      ...nuevoUsuario,
-      adminUser: usuario
+    setNuevaAsistencia({
+      trabajadorId: trabajadores.length ? String(trabajadores[0].id) : "",
+      fecha: "",
+      estado: "presente"
     });
 
-    if (res.error) return setError(res.error);
-
-    setNuevoUsuario({ username: "", password: "", rol: "trabajador" });
     cargarTodo();
   }
 
-  // Vista login
+  async function crearTrabajador(e) {
+    e.preventDefault();
+
+    const res = await api.createTrabajador(
+      {
+        username: nuevoTrabajador.username,
+        password: nuevoTrabajador.password,
+        nombre: nuevoTrabajador.nombre,
+        especialidad: nuevoTrabajador.especialidad
+      },
+      usuario
+    );
+
+    if (res.error) return setError(res.error);
+
+    setNuevoTrabajador({
+      username: "",
+      password: "",
+      nombre: "",
+      especialidad: "General"
+    });
+
+    cargarTodo();
+  }
+
+  async function eliminarTrabajador(usuarioId) {
+    const res = await api.deleteTrabajador(usuarioId, usuario);
+    if (res.error) return setError(res.error);
+    cargarTodo();
+  }
+
   if (!usuario) {
     return (
       <main className="layout">
@@ -332,8 +361,9 @@ function App() {
         </div>
 
         <div className="topbar-actions">
+          <button type="button" onClick={cargarTodo}>Actualizar</button>
           <button type="button" className="btn-logout" onClick={cerrarSesion}>
-            Cerrar sesión
+            Cerrar sesion
           </button>
         </div>
       </header>
@@ -344,7 +374,7 @@ function App() {
             <span>Clientes</span><strong>{resumen.clientes}</strong>
           </button>
           <button type="button" className="stat clickable" onClick={() => setTab("vehiculos")}>
-            <span>Vehículos en taller</span><strong>{resumen.vehiculosEnTaller}</strong>
+            <span>Vehiculos en taller</span><strong>{resumen.vehiculosEnTaller}</strong>
           </button>
           <button type="button" className="stat clickable" onClick={() => setTab("tareas")}>
             <span>Tareas abiertas</span><strong>{resumen.tareasAbiertas}</strong>
@@ -384,23 +414,51 @@ function App() {
       {tab === "clientes" && (
         <section className="card">
           <h2>Clientes</h2>
+
           <form className="form" onSubmit={crearCliente}>
-            <input placeholder="Nombre" value={nuevoCliente.nombre} onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })} />
-            <input placeholder="Teléfono" value={nuevoCliente.telefono} onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })} />
-            <input placeholder="Email" value={nuevoCliente.email} onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })} />
+            <input
+              placeholder="Nombre"
+              value={nuevoCliente.nombre}
+              onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })}
+            />
+            <input
+              placeholder="Telefono"
+              value={nuevoCliente.telefono}
+              onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })}
+            />
+            <input
+              placeholder="Email"
+              value={nuevoCliente.email}
+              onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })}
+            />
             <button type="submit">Agregar</button>
           </form>
-          <ul className="list">
-            {clientes.map((c) => (
-              <li key={c.id}>{c.nombre} - {c.telefono} - {c.email}</li>
-            ))}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Telefono</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientes.map((c) => (
+                <tr key={c.id}>
+                  <td>#{c.id}</td>
+                  <td>{c.nombre}</td>
+                  <td>{c.telefono}</td>
+                  <td>{c.email || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
       )}
 
       {tab === "vehiculos" && (
         <section className="card">
-          <h2>Vehículos</h2>
+          <h2>Vehiculos</h2>
 
           <div className="toolbar">
             <input
@@ -408,20 +466,35 @@ function App() {
               value={busquedaVehiculo}
               onChange={(e) => setBusquedaVehiculo(e.target.value)}
             />
-            <button onClick={cargarTodo}>Buscar</button>
+            <button type="button" onClick={cargarTodo}>Buscar</button>
           </div>
 
           <form className="form" onSubmit={crearVehiculo}>
-            <select value={nuevoVehiculo.clienteId} onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, clienteId: e.target.value })}>
+            <select
+              value={nuevoVehiculo.clienteId}
+              onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, clienteId: e.target.value })}
+            >
               <option value="">Cliente</option>
               {clientes.map((c) => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
             </select>
 
-            <input placeholder="Marca" value={nuevoVehiculo.marca} onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, marca: e.target.value })} />
-            <input placeholder="Modelo" value={nuevoVehiculo.modelo} onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, modelo: e.target.value })} />
-            <input placeholder="Patente" value={nuevoVehiculo.patente} onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, patente: e.target.value })} />
+            <input
+              placeholder="Marca"
+              value={nuevoVehiculo.marca}
+              onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, marca: e.target.value })}
+            />
+            <input
+              placeholder="Modelo"
+              value={nuevoVehiculo.modelo}
+              onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, modelo: e.target.value })}
+            />
+            <input
+              placeholder="Patente"
+              value={nuevoVehiculo.patente}
+              onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, patente: e.target.value })}
+            />
 
             <div className="date-field">
               <label htmlFor="vehiculo-fecha-entrada">Fecha de entrada</label>
@@ -434,7 +507,7 @@ function App() {
             </div>
 
             <div className="date-field">
-              <label htmlFor="vehiculo-fecha-limite">Fecha límite</label>
+              <label htmlFor="vehiculo-fecha-limite">Fecha limite</label>
               <input
                 id="vehiculo-fecha-limite"
                 type="date"
@@ -443,27 +516,47 @@ function App() {
               />
             </div>
 
-            <input placeholder="Diagnóstico" value={nuevoVehiculo.diagnostico} onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, diagnostico: e.target.value })} />
             <button type="submit">Agregar</button>
           </form>
 
-          <ul className="list">
-            {vehiculos.map((v) => (
-              <li key={v.id}>
-                {v.patente} - {v.marca} {v.modelo} | {v.cliente?.nombre} |
-                <select
-                  value={v.estado}
-                  onChange={(e) => cambiarEstadoVehiculo(v.id, e.target.value)}
-                  className={`estado-select estado-${v.estado}`}
-                  style={{ marginLeft: 8 }}
-                >
-                  <option value="en_taller">en_taller</option>
-                  <option value="reingresado">reingresado</option>
-                  <option value="entregado">entregado</option>
-                </select>
-              </li>
-            ))}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Patente</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>Cliente</th>
+                <th>Entrada</th>
+                <th>Limite</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vehiculos.map((v) => (
+                <tr key={v.id}>
+                  <td>#{v.id}</td>
+                  <td>{v.patente}</td>
+                  <td>{v.marca}</td>
+                  <td>{v.modelo}</td>
+                  <td>{v.cliente?.nombre || "N/A"}</td>
+                  <td>{v.fechaEntrada}</td>
+                  <td>{v.fechaLimite}</td>
+                  <td>
+                    <select
+                      value={v.estado}
+                      onChange={(e) => cambiarEstadoVehiculo(v.id, e.target.value)}
+                      className={`estado-select estado-${v.estado}`}
+                    >
+                      <option value="en_taller">en_taller</option>
+                      <option value="reingresado">reingresado</option>
+                      <option value="entregado">entregado</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
       )}
 
@@ -472,30 +565,57 @@ function App() {
           <h2>Tareas</h2>
 
           <form className="form" onSubmit={crearTarea}>
-            <select value={nuevaTarea.vehiculoId} onChange={(e) => setNuevaTarea({ ...nuevaTarea, vehiculoId: e.target.value })}>
-              <option value="">Vehículo</option>
+            <select
+              value={nuevaTarea.vehiculoId}
+              onChange={(e) => setNuevaTarea({ ...nuevaTarea, vehiculoId: e.target.value })}
+            >
+              <option value="">Vehiculo</option>
               {vehiculos.map((v) => (
                 <option key={v.id} value={v.id}>{v.patente}</option>
               ))}
             </select>
 
-            <select value={nuevaTarea.trabajadorId} onChange={(e) => setNuevaTarea({ ...nuevaTarea, trabajadorId: e.target.value })}>
+            <select
+              value={nuevaTarea.trabajadorId}
+              onChange={(e) => setNuevaTarea({ ...nuevaTarea, trabajadorId: e.target.value })}
+            >
               <option value="">Trabajador</option>
-              {(trabajadores.length ? trabajadores : [{ id: 1, nombre: "Carlos Mena" }, { id: 2, nombre: "Luis Rios" }]).map((w) => (
+              {trabajadores.map((w) => (
                 <option key={w.id} value={w.id}>{w.nombre}</option>
               ))}
             </select>
 
-            <input placeholder="Descripción" value={nuevaTarea.descripcion} onChange={(e) => setNuevaTarea({ ...nuevaTarea, descripcion: e.target.value })} />
+            <select
+              value={nuevaTarea.descripcion}
+              onChange={(e) => setNuevaTarea({ ...nuevaTarea, descripcion: e.target.value })}
+            >
+              <option value="">Descripcion</option>
+              {OPCIONES_TAREA.map((op) => (
+                <option key={op} value={op}>
+                  {op === "__otra__" ? "Otra (escribir manual)" : op}
+                </option>
+              ))}
+            </select>
 
-            <select value={nuevaTarea.prioridad} onChange={(e) => setNuevaTarea({ ...nuevaTarea, prioridad: e.target.value })}>
+            {nuevaTarea.descripcion === "__otra__" && (
+              <input
+                placeholder="Escribi la tarea"
+                value={otraDescripcionTarea}
+                onChange={(e) => setOtraDescripcionTarea(e.target.value)}
+              />
+            )}
+
+            <select
+              value={nuevaTarea.prioridad}
+              onChange={(e) => setNuevaTarea({ ...nuevaTarea, prioridad: e.target.value })}
+            >
               <option value="baja">baja</option>
               <option value="media">media</option>
               <option value="alta">alta</option>
             </select>
 
             <div className="date-field">
-              <label htmlFor="tarea-fecha-limite">Fecha límite de la tarea</label>
+              <label htmlFor="tarea-fecha-limite">Fecha limite de la tarea</label>
               <input
                 id="tarea-fecha-limite"
                 type="date"
@@ -504,14 +624,26 @@ function App() {
               />
             </div>
 
-            <input type="number" min="0" placeholder="Costo total" value={nuevaTarea.total} onChange={(e) => setNuevaTarea({ ...nuevaTarea, total: e.target.value })} />
+            <input
+              type="number"
+              min="0"
+              placeholder="Costo total"
+              value={nuevaTarea.total}
+              onChange={(e) => setNuevaTarea({ ...nuevaTarea, total: e.target.value })}
+            />
+
             <button type="submit">Crear</button>
           </form>
 
           <table>
             <thead>
               <tr>
-                <th>ID</th><th>Vehículo</th><th>Descripción</th><th>Prioridad</th><th>Total</th><th>Estado</th>
+                <th>ID</th>
+                <th>Vehiculo</th>
+                <th>Descripcion</th>
+                <th>Prioridad</th>
+                <th>Total</th>
+                <th>Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -549,14 +681,31 @@ function App() {
           <h2>Recursos y Repuestos</h2>
 
           <form className="form" onSubmit={crearRecurso}>
-            <input placeholder="Nombre" value={nuevoRecurso.nombre} onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, nombre: e.target.value })} />
-            <select value={nuevoRecurso.tipo} onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, tipo: e.target.value })}>
+            <input
+              placeholder="Nombre"
+              value={nuevoRecurso.nombre}
+              onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, nombre: e.target.value })}
+            />
+            <select
+              value={nuevoRecurso.tipo}
+              onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, tipo: e.target.value })}
+            >
               <option value="repuesto">repuesto</option>
               <option value="insumo">insumo</option>
               <option value="herramienta">herramienta</option>
             </select>
-            <input type="number" placeholder="Stock" value={nuevoRecurso.stock} onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, stock: e.target.value })} />
-            <input type="number" placeholder="Mínimo" value={nuevoRecurso.minimo} onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, minimo: e.target.value })} />
+            <input
+              type="number"
+              placeholder="Stock"
+              value={nuevoRecurso.stock}
+              onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, stock: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Minimo"
+              value={nuevoRecurso.minimo}
+              onChange={(e) => setNuevoRecurso({ ...nuevoRecurso, minimo: e.target.value })}
+            />
             <button type="submit">Agregar</button>
           </form>
 
@@ -564,9 +713,8 @@ function App() {
             {recursos.map((r) => (
               <li key={r.id} className="item-recurso">
                 <div className="recurso-texto">
-                  {r.nombre} ({r.tipo}) - Stock: {r.stock} / Mín: {r.minimo}
+                  {r.nombre} ({r.tipo}) - Stock: {r.stock} / Min: {r.minimo}
                 </div>
-
                 <div className="acciones-recurso">
                   <button type="button" className="mini-btn boton-consumir" onClick={() => consumirRecurso(r.id)}>
                     Consumir 1
@@ -594,9 +742,14 @@ function App() {
           </div>
 
           <div className="toolbar">
-            <input type="date" value={filtroAsistenciaFecha} onChange={(e) => setFiltroAsistenciaFecha(e.target.value)} />
-            <button onClick={cargarTodo}>Filtrar</button>
+            <input
+              type="date"
+              value={filtroAsistenciaFecha}
+              onChange={(e) => setFiltroAsistenciaFecha(e.target.value)}
+            />
+            <button type="button" onClick={cargarTodo}>Filtrar</button>
             <button
+              type="button"
               onClick={() => {
                 setFiltroAsistenciaFecha("");
                 setTimeout(cargarTodo, 0);
@@ -607,12 +760,25 @@ function App() {
           </div>
 
           <form className="form" onSubmit={crearAsistencia}>
-            <select value={nuevaAsistencia.trabajadorId} onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, trabajadorId: e.target.value })}>
-              <option value="1">Carlos Mena</option>
-              <option value="2">Luis Rios</option>
+            <select
+              value={nuevaAsistencia.trabajadorId}
+              onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, trabajadorId: e.target.value })}
+            >
+              <option value="">Trabajador</option>
+              {trabajadores.map((w) => (
+                <option key={w.id} value={w.id}>{w.nombre}</option>
+              ))}
             </select>
-            <input type="date" value={nuevaAsistencia.fecha} onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, fecha: e.target.value })} />
-            <select value={nuevaAsistencia.estado} onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, estado: e.target.value })}>
+
+            <input
+              type="date"
+              value={nuevaAsistencia.fecha}
+              onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, fecha: e.target.value })}
+            />
+            <select
+              value={nuevaAsistencia.estado}
+              onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, estado: e.target.value })}
+            >
               <option value="presente">presente</option>
               <option value="ausente">ausente</option>
               <option value="tarde">tarde</option>
@@ -633,7 +799,7 @@ function App() {
           <h2>Reportes</h2>
           <ul className="list">
             <li>Clientes registrados: {resumen?.clientes ?? 0}</li>
-            <li>Vehículos en taller: {resumen?.vehiculosEnTaller ?? 0}</li>
+            <li>Vehiculos en taller: {resumen?.vehiculosEnTaller ?? 0}</li>
             <li>Tareas abiertas: {resumen?.tareasAbiertas ?? 0}</li>
             <li>Tareas en proceso: {resumen?.tareasEnProceso ?? 0}</li>
             <li>Tareas cerradas: {resumen?.tareasCerradas ?? 0}</li>
@@ -645,37 +811,76 @@ function App() {
 
       {tab === "usuarios" && esAdmin && (
         <section className="card">
-          <h2>Usuarios</h2>
+          <h2>Usuarios / Trabajadores</h2>
 
-          <form className="form" onSubmit={crearUsuario}>
+          <form className="form" onSubmit={crearTrabajador}>
             <input
               placeholder="Usuario"
-              value={nuevoUsuario.username}
-              onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, username: e.target.value })}
+              value={nuevoTrabajador.username}
+              onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, username: e.target.value })}
             />
             <input
               placeholder="Contraseña"
               type="password"
-              value={nuevoUsuario.password}
-              onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, password: e.target.value })}
+              value={nuevoTrabajador.password}
+              onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, password: e.target.value })}
+            />
+            <input
+              placeholder="Nombre completo"
+              value={nuevoTrabajador.nombre}
+              onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, nombre: e.target.value })}
             />
             <select
-              value={nuevoUsuario.rol}
-              onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, rol: e.target.value })}
+              value={nuevoTrabajador.especialidad}
+              onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, especialidad: e.target.value })}
             >
-              <option value="trabajador">trabajador</option>
-              <option value="administrador">administrador</option>
+              <option value="General">General</option>
+              <option value="Motor">Motor</option>
+              <option value="Electricidad">Electricidad</option>
+              <option value="Frenos y suspension">Frenos y suspension</option>
+              <option value="Inyeccion">Inyeccion</option>
+              <option value="Caja y transmision">Caja y transmision</option>
+              <option value="Aire acondicionado">Aire acondicionado</option>
+              <option value="Diagnostico">Diagnostico</option>
             </select>
-            <button type="submit">Crear usuario</button>
+            <button type="submit">Crear trabajador</button>
           </form>
 
-          <ul className="list">
-            {usuarios.map((u) => (
-              <li key={u.id}>
-                {u.username} - {u.rol}
-              </li>
-            ))}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Nombre</th>
+                <th>Especialidad</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => {
+                const t = trabajadorPorUsuario[u.id];
+                return (
+                  <tr key={u.id}>
+                    <td>#{u.id}</td>
+                    <td>{u.username}</td>
+                    <td>{u.rol}</td>
+                    <td>{t?.nombre || "-"}</td>
+                    <td>{t?.especialidad || "-"}</td>
+                    <td>
+                      {u.rol === "trabajador" ? (
+                        <button type="button" onClick={() => eliminarTrabajador(u.id)}>
+                          Eliminar
+                        </button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </section>
       )}
     </main>

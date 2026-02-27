@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("node:path");
 
 const authRouter = require("./routes/auth");
 const clientesRouter = require("./routes/clientes");
@@ -8,12 +9,12 @@ const recursosRouter = require("./routes/recursos");
 const asistenciasRouter = require("./routes/asistencias");
 const reportesRouter = require("./routes/reportes");
 const usuariosRouter = require("./routes/usuarios");
+const trabajadoresRouter = require("./routes/trabajadores");
 
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Orígenes permitidos
 const allowedOrigins = [
   "http://localhost:3000",
   "https://tallercairoautomotriz-1.onrender.com",
@@ -23,9 +24,8 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(express.json());
-app.use("/api/usuarios", usuariosRouter);
 
-// CORS
+// CORS (antes de todas las rutas /api)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
@@ -40,7 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 
-
+// API
 app.use("/api/auth", authRouter);
 app.use("/api/clientes", clientesRouter);
 app.use("/api/vehiculos", vehiculosRouter);
@@ -48,18 +48,18 @@ app.use("/api/tareas", tareasRouter);
 app.use("/api/recursos", recursosRouter);
 app.use("/api/asistencias", asistenciasRouter);
 app.use("/api/reportes", reportesRouter);
+app.use("/api/usuarios", usuariosRouter);
+app.use("/api/trabajadores", trabajadoresRouter);
 
-const path = require("node:path");
 
-// Servir build de React
+
+// Frontend build
 app.use(express.static(path.join(__dirname, "../../cliente/build")));
 
-// Fallback SPA (Express 5 compatible)
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   res.sendFile(path.join(__dirname, "../../cliente/build/index.html"));
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
