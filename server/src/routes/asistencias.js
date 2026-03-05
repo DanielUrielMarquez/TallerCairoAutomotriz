@@ -1,53 +1,90 @@
 const { Router } = require("express");
-const db = require("../data/db");
+const pool = require("../config/db");
 
 const router = Router();
 const ESTADOS = ["presente", "ausente", "tarde"];
 
-// Listar asistencias (con filtro por fecha opcional)
-router.get("/", (req, res) => {
-  const { fecha } = req.query;
+// Listar asistencias con filtro por fecha opcional
+router.get("/", async (req, res) => {
+  try {
+    const { fecha } = req.query;
+    const params = [];
+    let where = "";
 
-  let data = db.asistencias.map((a) => ({
-    ...a,
-    trabajador: db.trabajadores.find((w) => w.id === a.trabajadorId) || null
-  }));
+    if (fecha) {
+      where = "WHERE a.fecha = $1";
+      params.push(fecha);
+    }
 
-  if (fecha) data = data.filter((a) => a.fecha === fecha);
+    const { rows } = await pool.query(
+      `
+      SELECT
+        a.id,
+        a.trabajador_id AS "trabajadorId",
+        a.fecha,
+        a.estado,
+        t.id AS "t_id",
+        t.nombre AS "t_nombre",
+        t.especialidad AS "t_especialidad"
+      FROM asistencias a
+      JOIN trabajadores t ON t.id = a.trabajador_id
+      ${where}
+      ORDER BY a.fecha DESC, a.id DESC
+      `,
+      params
+    );
 
-  // Más reciente primero
-  data.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    const data = rows.map((r) => ({
+      id: r.id,
+      trabajadorId: r.trabajadorId,
+      fecha: r.fecha,
+      estado: r.estado,
+      trabajador: {
+        id: r.t_id,
+        nombre: r.t_nombre,
+        especialidad: r.t_especialidad
+      }
+    }));
 
-  res.json(data);
+    res.json(data);
+  } catch {
+    res.status(500).json({ error: "Error al listar asistencias" });
+  }
 });
 
-// Crear asistencia (sin duplicar trabajador + fecha)
-router.post("/", (req, res) => {
-  const { trabajadorId, fecha, estado } = req.body;
+// Crear asistencia
+router.post("/", async (req, res) => {
+  try {
+    const { trabajadorId, fecha, estado } = req.body;
 
-  if (!trabajadorId || !fecha || !ESTADOS.includes(estado)) {
-    return res.status(400).json({ error: "Datos inválidos" });
+    if (!trabajadorId || !fecha || !ESTADOS.includes(estado)) {
+      return res.status(400).json({ error: "Datos inválidos" });
+    }
+
+    const t = await pool.query("SELECT id FROM trabajadores WHERE id = $1", [Number(trabajadorId)]);
+    if (!t.rowCount) return res.status(400).json({ error: "trabajadorId inválido" });
+
+    const dup = await pool.query(
+      "SELECT 1 FROM asistencias WHERE trabajador_id = $1 AND fecha = $2",
+      [Number(trabajadorId), fecha]
+    );
+    if (dup.rowCount) {
+      return res.status(409).json({ error: "Ese trabajador ya tiene asistencia cargada en esa fecha" });
+    }
+
+    const { rows } = await pool.query(
+      `
+      INSERT INTO asistencias (trabajador_id, fecha, estado)
+      VALUES ($1, $2, $3)
+      RETURNING id, trabajador_id AS "trabajadorId", fecha, estado
+      `,
+      [Number(trabajadorId), fecha, estado]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch {
+    res.status(500).json({ error: "Error al crear asistencia" });
   }
-
-  const trabajadorExiste = db.trabajadores.some((w) => w.id === Number(trabajadorId));
-  if (!trabajadorExiste) return res.status(400).json({ error: "trabajadorId inválido" });
-
-  const duplicado = db.asistencias.some(
-    (a) => a.trabajadorId === Number(trabajadorId) && a.fecha === fecha
-  );
-  if (duplicado) {
-    return res.status(409).json({ error: "Ese trabajador ya tiene asistencia cargada en esa fecha" });
-  }
-
-  const nueva = {
-    id: db.counters.asistencia++,
-    trabajadorId: Number(trabajadorId),
-    fecha,
-    estado
-  };
-
-  db.asistencias.push(nueva);
-  res.status(201).json(nueva);
 });
 
 module.exports = router;

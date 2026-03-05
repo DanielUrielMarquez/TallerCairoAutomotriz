@@ -1,3 +1,6 @@
+require("dotenv").config();
+const pool = require("./config/db");
+
 const express = require("express");
 const path = require("node:path");
 
@@ -60,6 +63,15 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   res.sendFile(path.join(__dirname, "../../cliente/build/index.html"));
 });
+
+(async () => {
+  try {
+    await pool.query("SELECT 1");
+    console.log("PostgreSQL conectado");
+  } catch (err) {
+    console.error("Error PostgreSQL:", err.message);
+  }
+})();
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

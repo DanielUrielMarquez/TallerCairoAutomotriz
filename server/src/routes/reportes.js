@@ -1,29 +1,43 @@
 const { Router } = require("express");
-const db = require("../data/db");
+const pool = require("../config/db");
 
 const router = Router();
 
-// Resumen general para dashboard
-router.get("/resumen", (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+// Resumen general dashboard
+router.get("/resumen", async (_req, res) => {
+  try {
+    const hoy = new Date().toISOString().slice(0, 10);
 
-  const tareasVencidas = db.tareas.filter(
-    (t) => t.fechaLimite < hoy && t.estado !== "cerrada"
-  ).length;
+    const [
+      cClientes,
+      cVehiculos,
+      cTareasAbiertas,
+      cTareasEnProceso,
+      cTareasCerradas,
+      cTareasVencidas,
+      cRecursosStockBajo
+    ] = await Promise.all([
+      pool.query("SELECT COUNT(*)::int AS total FROM clientes"),
+      pool.query("SELECT COUNT(*)::int AS total FROM vehiculos WHERE estado IN ('en_taller', 'reingresado')"),
+      pool.query("SELECT COUNT(*)::int AS total FROM tareas WHERE estado = 'abierta'"),
+      pool.query("SELECT COUNT(*)::int AS total FROM tareas WHERE estado = 'en_proceso'"),
+      pool.query("SELECT COUNT(*)::int AS total FROM tareas WHERE estado = 'cerrada'"),
+      pool.query("SELECT COUNT(*)::int AS total FROM tareas WHERE fecha_limite < $1 AND estado <> 'cerrada'", [hoy]),
+      pool.query("SELECT COUNT(*)::int AS total FROM recursos WHERE stock <= minimo")
+    ]);
 
-  const recursosStockBajo = db.recursos.filter(
-    (r) => Number(r.stock) <= Number(r.minimo)
-  ).length;
-
-  res.json({
-    clientes: db.clientes.length,
-    vehiculosEnTaller: db.vehiculos.filter((v) => v.estado === "en_taller" || v.estado === "reingresado").length,
-    tareasAbiertas: db.tareas.filter((t) => t.estado === "abierta").length,
-    tareasEnProceso: db.tareas.filter((t) => t.estado === "en_proceso").length,
-    tareasCerradas: db.tareas.filter((t) => t.estado === "cerrada").length,
-    tareasVencidas,
-    recursosStockBajo
-  });
+    res.json({
+      clientes: cClientes.rows[0].total,
+      vehiculosEnTaller: cVehiculos.rows[0].total,
+      tareasAbiertas: cTareasAbiertas.rows[0].total,
+      tareasEnProceso: cTareasEnProceso.rows[0].total,
+      tareasCerradas: cTareasCerradas.rows[0].total,
+      tareasVencidas: cTareasVencidas.rows[0].total,
+      recursosStockBajo: cRecursosStockBajo.rows[0].total
+    });
+  } catch {
+    res.status(500).json({ error: "Error al generar resumen" });
+  }
 });
 
 module.exports = router;
