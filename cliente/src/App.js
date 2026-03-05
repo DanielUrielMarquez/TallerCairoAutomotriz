@@ -159,10 +159,8 @@ function App() {
   async function onLogin(e) {
     e.preventDefault();
     setError("");
-
     const res = await api.login(loginForm);
     if (res.error) return setError(res.error);
-
     setUsuario(res.usuario);
     localStorage.setItem("usuario_sesion", JSON.stringify(res.usuario));
   }
@@ -178,21 +176,20 @@ function App() {
 
   async function crearCliente(e) {
     e.preventDefault();
+    setError("");
     const res = await api.createCliente(nuevoCliente);
     if (res.error) return setError(res.error);
-
     setNuevoCliente({ nombre: "", telefono: "", email: "" });
     cargarTodo();
   }
 
   async function crearVehiculo(e) {
     e.preventDefault();
-
+    setError("");
     const res = await api.createVehiculo({
       ...nuevoVehiculo,
       clienteId: Number(nuevoVehiculo.clienteId)
     });
-
     if (res.error) return setError(res.error);
 
     setNuevoVehiculo({
@@ -203,11 +200,11 @@ function App() {
       fechaEntrada: "",
       fechaLimite: ""
     });
-
     cargarTodo();
   }
 
   async function cambiarEstadoVehiculo(id, estado) {
+    setError("");
     const res = await api.updateEstadoVehiculo(id, estado);
     if (res.error) return setError(res.error);
     cargarTodo();
@@ -215,6 +212,7 @@ function App() {
 
   async function crearTarea(e) {
     e.preventDefault();
+    setError("");
 
     const descripcionFinal =
       nuevaTarea.descripcion === "__otra__"
@@ -242,11 +240,11 @@ function App() {
       total: ""
     });
     setOtraDescripcionTarea("");
-
     cargarTodo();
   }
 
   async function cambiarEstadoTarea(id, estado) {
+    setError("");
     const res = await api.updateEstadoTarea(id, estado);
     if (res.error) return setError(res.error);
     cargarTodo();
@@ -254,20 +252,22 @@ function App() {
 
   async function crearRecurso(e) {
     e.preventDefault();
+    setError("");
     const res = await api.createRecurso(nuevoRecurso);
     if (res.error) return setError(res.error);
-
     setNuevoRecurso({ nombre: "", tipo: "repuesto", stock: "", minimo: "" });
     cargarTodo();
   }
 
   async function consumirRecurso(id) {
+    setError("");
     const res = await api.consumirRecurso(id, 1);
     if (res.error) return setError(res.error);
     cargarTodo();
   }
 
   async function reponerRecurso(id) {
+    setError("");
     const res = await api.reponerRecurso(id, 1);
     if (res.error) return setError(res.error);
     cargarTodo();
@@ -275,6 +275,7 @@ function App() {
 
   async function crearAsistencia(e) {
     e.preventDefault();
+    setError("");
 
     const res = await api.createAsistencia({
       ...nuevaAsistencia,
@@ -288,12 +289,12 @@ function App() {
       fecha: "",
       estado: "presente"
     });
-
     cargarTodo();
   }
 
   async function crearTrabajador(e) {
     e.preventDefault();
+    setError("");
 
     const res = await api.createTrabajador(
       {
@@ -313,11 +314,11 @@ function App() {
       nombre: "",
       especialidad: "General"
     });
-
     cargarTodo();
   }
 
   async function eliminarTrabajador(usuarioId) {
+    setError("");
     const res = await api.deleteTrabajador(usuarioId, usuario);
     if (res.error) return setError(res.error);
     cargarTodo();
@@ -337,7 +338,7 @@ function App() {
               onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
             />
             <input
-              placeholder="Contraseña"
+              placeholder="Contrasena"
               type="password"
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
@@ -433,26 +434,29 @@ function App() {
             />
             <button type="submit">Agregar</button>
           </form>
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Telefono</th>
-                <th>Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientes.map((c) => (
-                <tr key={c.id}>
-                  <td>#{c.id}</td>
-                  <td>{c.nombre}</td>
-                  <td>{c.telefono}</td>
-                  <td>{c.email || "-"}</td>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {clientes.map((c) => (
+                  <tr key={c.id}>
+                    <td>#{c.id}</td>
+                    <td>{c.nombre}</td>
+                    <td>{c.telefono}</td>
+                    <td>{c.email || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -519,44 +523,46 @@ function App() {
             <button type="submit">Agregar</button>
           </form>
 
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Patente</th>
-                <th>Marca</th>
-                <th>Modelo</th>
-                <th>Cliente</th>
-                <th>Entrada</th>
-                <th>Limite</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehiculos.map((v) => (
-                <tr key={v.id}>
-                  <td>#{v.id}</td>
-                  <td>{v.patente}</td>
-                  <td>{v.marca}</td>
-                  <td>{v.modelo}</td>
-                  <td>{v.cliente?.nombre || "N/A"}</td>
-                  <td>{v.fechaEntrada}</td>
-                  <td>{v.fechaLimite}</td>
-                  <td>
-                    <select
-                      value={v.estado}
-                      onChange={(e) => cambiarEstadoVehiculo(v.id, e.target.value)}
-                      className={`estado-select estado-${v.estado}`}
-                    >
-                      <option value="en_taller">en_taller</option>
-                      <option value="reingresado">reingresado</option>
-                      <option value="entregado">entregado</option>
-                    </select>
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patente</th>
+                  <th>Marca</th>
+                  <th>Modelo</th>
+                  <th>Cliente</th>
+                  <th>Entrada</th>
+                  <th>Limite</th>
+                  <th>Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vehiculos.map((v) => (
+                  <tr key={v.id}>
+                    <td>#{v.id}</td>
+                    <td>{v.patente}</td>
+                    <td>{v.marca}</td>
+                    <td>{v.modelo}</td>
+                    <td>{v.cliente?.nombre || "N/A"}</td>
+                    <td>{v.fechaEntrada}</td>
+                    <td>{v.fechaLimite}</td>
+                    <td>
+                      <select
+                        value={v.estado}
+                        onChange={(e) => cambiarEstadoVehiculo(v.id, e.target.value)}
+                        className={`estado-select estado-${v.estado}`}
+                      >
+                        <option value="en_taller">en_taller</option>
+                        <option value="reingresado">reingresado</option>
+                        <option value="entregado">entregado</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -635,40 +641,42 @@ function App() {
             <button type="submit">Crear</button>
           </form>
 
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Vehiculo</th>
-                <th>Descripcion</th>
-                <th>Prioridad</th>
-                <th>Total</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tareas.map((t) => (
-                <tr key={t.id}>
-                  <td>#{t.id}</td>
-                  <td>{t.vehiculo?.patente || "N/A"}</td>
-                  <td>{t.descripcion}</td>
-                  <td>{t.prioridad}</td>
-                  <td>${Number(t.total || 0).toLocaleString("es-AR")}</td>
-                  <td>
-                    <select
-                      value={t.estado}
-                      onChange={(e) => cambiarEstadoTarea(t.id, e.target.value)}
-                      className={`estado-select estado-tarea-${t.estado}`}
-                    >
-                      {ESTADOS_TAREA.map((es) => (
-                        <option key={es} value={es}>{es}</option>
-                      ))}
-                    </select>
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Vehiculo</th>
+                  <th>Descripcion</th>
+                  <th>Prioridad</th>
+                  <th>Total</th>
+                  <th>Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tareas.map((t) => (
+                  <tr key={t.id}>
+                    <td>#{t.id}</td>
+                    <td>{t.vehiculo?.patente || "N/A"}</td>
+                    <td>{t.descripcion}</td>
+                    <td>{t.prioridad}</td>
+                    <td>${Number(t.total || 0).toLocaleString("es-AR")}</td>
+                    <td>
+                      <select
+                        value={t.estado}
+                        onChange={(e) => cambiarEstadoTarea(t.id, e.target.value)}
+                        className={`estado-select estado-tarea-${t.estado}`}
+                      >
+                        {ESTADOS_TAREA.map((es) => (
+                          <option key={es} value={es}>{es}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <p className="total-tareas">
             Total acumulado de tareas: <strong>${totalTareas.toLocaleString("es-AR")}</strong>
@@ -820,7 +828,7 @@ function App() {
               onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, username: e.target.value })}
             />
             <input
-              placeholder="Contraseña"
+              placeholder="Contrasena"
               type="password"
               value={nuevoTrabajador.password}
               onChange={(e) => setNuevoTrabajador({ ...nuevoTrabajador, password: e.target.value })}
@@ -846,41 +854,43 @@ function App() {
             <button type="submit">Crear trabajador</button>
           </form>
 
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Usuario</th>
-                <th>Rol</th>
-                <th>Nombre</th>
-                <th>Especialidad</th>
-                <th>Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u) => {
-                const t = trabajadorPorUsuario[u.id];
-                return (
-                  <tr key={u.id}>
-                    <td>#{u.id}</td>
-                    <td>{u.username}</td>
-                    <td>{u.rol}</td>
-                    <td>{t?.nombre || "-"}</td>
-                    <td>{t?.especialidad || "-"}</td>
-                    <td>
-                      {u.rol === "trabajador" ? (
-                        <button type="button" onClick={() => eliminarTrabajador(u.id)}>
-                          Eliminar
-                        </button>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Nombre</th>
+                  <th>Especialidad</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.map((u) => {
+                  const t = trabajadorPorUsuario[u.id];
+                  return (
+                    <tr key={u.id}>
+                      <td>#{u.id}</td>
+                      <td>{u.username}</td>
+                      <td>{u.rol}</td>
+                      <td>{t?.nombre || "-"}</td>
+                      <td>{t?.especialidad || "-"}</td>
+                      <td>
+                        {u.rol === "trabajador" ? (
+                          <button type="button" onClick={() => eliminarTrabajador(u.id)}>
+                            Eliminar
+                          </button>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </main>
