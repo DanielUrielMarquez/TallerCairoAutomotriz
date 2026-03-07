@@ -31,8 +31,9 @@ app.use(express.json());
 // CORS (antes de todas las rutas /api)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const isLocalhost = typeof origin === "string" && /^http:\/\/localhost:\d+$/.test(origin);
 
-  if (!origin || allowedOrigins.includes(origin)) {
+  if (!origin || allowedOrigins.includes(origin) || isLocalhost) {
     res.header("Access-Control-Allow-Origin", origin || "*");
   }
 

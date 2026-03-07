@@ -35,7 +35,8 @@ router.get("/resumen", async (_req, res) => {
       tareasVencidas: cTareasVencidas.rows[0].total,
       recursosStockBajo: cRecursosStockBajo.rows[0].total
     });
-  } catch {
+  } catch (err) {
+    console.error("Resumen error:", err.message);
     res.status(500).json({ error: "Error al generar resumen" });
   }
 });
