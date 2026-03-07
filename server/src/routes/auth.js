@@ -21,7 +21,8 @@ router.post("/login", async (req, res) => {
       token: `fake-token-${rows[0].id}`,
       usuario: rows[0]
     });
-  } catch {
+  } catch (err) {
+    console.error("Login error:", err.message);
     res.status(500).json({ error: "Error interno en login" });
   }
 });
