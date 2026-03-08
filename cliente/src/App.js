@@ -23,6 +23,8 @@ import RequireRole from "./guards/requireRole";
 import { useDashboardData } from "./services/useDashboardData";
 import { useAuth } from "./services/useAuth";
 import { useWorkshopAct } from "./services/useWorkshopAct";
+import { exportRecursosToExcel, parseRecursosFromExcel } from "./services/excel";
+import { api } from "./services/api";
 
 
 
@@ -224,6 +226,9 @@ const {
   recursos={recursos}
   consumirRecurso={consumirRecurso}
   reponerRecurso={reponerRecurso}
+  exportarRecursos={exportarRecursos}
+  importarRecursosExcel={importarRecursosExcel}
+
 />
 <AsistenciaPanel
   tab={tab}
@@ -253,5 +258,40 @@ const {
     </main>
   </RequireAuth>
   );
+  function exportarRecursos() {
+  exportRecursosToExcel(recursos);
+}
+async function importarRecursosExcel(file) {
+  try {
+    setError("");
+    const items = await parseRecursosFromExcel(file);
+
+    const validos = items.filter(
+      (r) =>
+        r.nombre &&
+        ["repuesto", "insumo", "herramienta"].includes(r.tipo) &&
+        Number.isFinite(r.stock) &&
+        Number.isFinite(r.minimo)
+    );
+
+    if (!validos.length) {
+      return setError("El archivo no contiene filas válidas.");
+    }
+
+    for (const recurso of validos) {
+      const res = await api.createRecurso(recurso);
+      if (res.error) {
+        setError(`Error importando "${recurso.nombre}": ${res.error}`);
+        break;
+      }
+    }
+
+    await cargarTodo();
+  } catch {
+    setError("No se pudo leer el archivo Excel.");
+  }
+}
+
+
 }
 export default App;

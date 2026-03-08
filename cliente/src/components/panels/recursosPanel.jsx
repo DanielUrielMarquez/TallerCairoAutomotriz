@@ -1,4 +1,24 @@
-function RecursosPanel({ tab, nuevoRecurso, setNuevoRecurso, crearRecurso, recursos, consumirRecurso, reponerRecurso }) {
+import { useState } from "react";
+
+function RecursosPanel({
+  tab,
+  nuevoRecurso,
+  setNuevoRecurso,
+  crearRecurso,
+  recursos,
+  consumirRecurso,
+  reponerRecurso,
+  exportarRecursos,
+  importarRecursosExcel
+}) {
+  const [archivoExcel, setArchivoExcel] = useState(null);
+
+  async function confirmarImportacion() {
+    if (!archivoExcel) return;
+    await importarRecursosExcel(archivoExcel);
+    setArchivoExcel(null);
+  }
+
   return (
     <>
       {tab === "recursos" && (
@@ -33,7 +53,28 @@ function RecursosPanel({ tab, nuevoRecurso, setNuevoRecurso, crearRecurso, recur
                   />
                   <button type="submit">Agregar</button>
                 </form>
-      
+
+                <div className="toolbar">
+                  <button type="button" onClick={exportarRecursos}>
+                    Exportar Excel
+                  </button>
+                </div>
+
+                <div className="toolbar">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setArchivoExcel(e.target.files?.[0] || null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={confirmarImportacion}
+                    disabled={!archivoExcel}
+                  >
+                    Importar Excel
+                  </button>
+                </div>
+
                 <ul className="lista-recursos">
                   {recursos.map((r) => (
                     <li key={r.id} className="item-recurso">
@@ -49,9 +90,11 @@ function RecursosPanel({ tab, nuevoRecurso, setNuevoRecurso, crearRecurso, recur
                         </button>
                       </div>
                     </li>
-                  ))}
+                  ))
+                  }
                 </ul>
               </section>
+              
             )}
     </>
   );
