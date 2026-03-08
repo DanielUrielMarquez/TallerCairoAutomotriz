@@ -28,6 +28,7 @@ import {
   parseRecursosFromExcel,
   exportErroresImportacionToExcel,
   exportResumenToExcel,
+  exportPedidoMayoristaToExcel,
 } from "./services/excel";
 import { api } from "./services/api";
 
@@ -84,6 +85,7 @@ const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ se
     nombre: "",
     especialidad: "General"
   });
+  const [mostrarStockBajoModal, setMostrarStockBajoModal] = useState(false);
   useEffect(() => {
   localStorage.setItem("tab_actual", tab);
 }, [tab]);
@@ -117,6 +119,13 @@ function exportarResumen() {
   exportResumenToExcel(resumen, totalTareas);
 }
 
+function exportarPedidoMayorista() {
+  if (!recursosStockBajo.length) {
+    setError("No hay materiales con stock bajo para exportar.");
+    return;
+  }
+  exportPedidoMayoristaToExcel(recursosStockBajo);
+}
 
 function handleLogout() {
   cerrarSesion();
@@ -133,6 +142,10 @@ function handleLogout() {
 const totalTareas = useMemo(
   () => calculateTotalTareas(tareas),
   [tareas]
+);
+const recursosStockBajo = useMemo(
+  () => recursos.filter((r) => Number(r.stock) <= Number(r.minimo)),
+  [recursos]
 );
 
 const trabajadorPorUsuario = useMemo(
@@ -190,7 +203,11 @@ const {
     <main className="layout">
     
     <TopBar usuario={usuario} onRefresh={cargarTodo} onLogout={handleLogout} />
-    <StatsHeader resumen={resumen} setTab={setTab} />
+    <StatsHeader
+      resumen={resumen}
+      setTab={setTab}
+      onStockAlertClick={() => setMostrarStockBajoModal(true)}
+    />
     <TabsNav tabsVisibles={tabsVisibles} tab={tab} setTab={setTab} />
     <StatusMessages error={error} loading={loading} />
 
@@ -270,6 +287,41 @@ const {
     eliminarTrabajador={eliminarTrabajador}
   />
 </RequireRole>
+
+{mostrarStockBajoModal && (
+  <section className="card">
+    <h2>Materiales con stock bajo</h2>
+    {!recursosStockBajo.length ? (
+      <p>No hay materiales con stock bajo.</p>
+    ) : (
+      <ul className="list">
+        {recursosStockBajo.map((r) => {
+  const stock = Number(r.stock) || 0;
+  const minimo = Number(r.minimo) || 0;
+  const objetivo = Math.ceil(minimo * 1.5);
+  const pedir = Math.max(0, objetivo - stock);
+
+  return (
+    <li key={r.id}>
+      {r.nombre} ({r.tipo}) - Stock: {stock}, Minimo: {minimo}, Objetivo: {objetivo}, Pedido sugerido: {pedir}
+    </li>
+  );
+})}
+      </ul>
+    )}
+    <button
+  type="button"
+  onClick={exportarPedidoMayorista}
+>
+  Exportar pedido mayorista
+</button>
+
+    <button type="button" onClick={() => setMostrarStockBajoModal(false)}>
+      Cerrar
+    </button>
+    
+  </section>
+)}
     </main>
   </RequireAuth>
   );

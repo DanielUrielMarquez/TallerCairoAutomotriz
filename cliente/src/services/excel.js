@@ -87,5 +87,47 @@ export function exportResumenToExcel(resumen, totalTareas) {
   XLSX.utils.book_append_sheet(wb, ws, "Resumen");
   XLSX.writeFile(wb, "reporte_resumen_taller.xlsx");
 }
+export function exportPedidoMayoristaToExcel(recursosStockBajo) {
+  if (!Array.isArray(recursosStockBajo) || !recursosStockBajo.length) return;
 
+const factorReposicion = 2;
+
+const rows = recursosStockBajo.map((r) => {
+  const stock = Number(r.stock) || 0;
+  const minimo = Number(r.minimo) || 0;
+  const objetivo = Math.ceil(minimo * factorReposicion);
+  const cantidadAPedir = Math.max(0, objetivo - stock);
+
+  return {
+    id: r.id,
+    nombre: r.nombre,
+    tipo: r.tipo,
+    stock_actual: stock,
+    minimo,
+    objetivo_stock: objetivo,
+    cantidad_a_pedir: cantidadAPedir,
+  };
+});
+const totalItems = rows.length;
+const totalAPedir = rows.reduce((acc, r) => acc + Number(r.cantidad_a_pedir || 0), 0);
+
+const resumenRows = [
+  { campo: "Fecha exportacion", valor: new Date().toLocaleString("es-AR") },
+  { campo: "Items con stock bajo", valor: totalItems },
+  { campo: "Total unidades a pedir", valor: totalAPedir },
+];
+
+const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
+
+
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "PedidoMayorista");
+  const now = new Date();
+  XLSX.utils.book_append_sheet(wb, wsResumen, "ResumenPedido");
+const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, "-");
+XLSX.writeFile(wb, `pedido_mayorista_${stamp}.xlsx`);
+
+}
 

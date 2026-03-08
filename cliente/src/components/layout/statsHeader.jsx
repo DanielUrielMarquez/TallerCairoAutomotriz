@@ -1,4 +1,4 @@
-function StatsHeader({ resumen, setTab }) {
+function StatsHeader({ resumen, setTab, onStockAlertClick }) {
   return (
     <>
       {resumen && (
@@ -27,9 +27,13 @@ function StatsHeader({ resumen, setTab }) {
             {resumen && (
               <div className="top-kpi-bar">
                 <span className="kpi-label">Alertas</span>
-                <span className={`kpi-stock ${resumen.recursosStockBajo > 0 ? "danger" : "ok"}`}>
+                <button
+                  type="button"
+                  className={`kpi-stock ${resumen.recursosStockBajo > 0 ? "danger" : "ok"}`}
+                  onClick={onStockAlertClick}
+                >
                   Stock bajo: {resumen.recursosStockBajo}
-                </span>
+                </button>
               </div>
             )}
     </>
