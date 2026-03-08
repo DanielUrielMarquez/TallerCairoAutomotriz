@@ -445,60 +445,65 @@ th {
   }
 }
 
+/* ===== Mobile didáctico (2x3 + acciones verticales) ===== */
 @media (max-width: 768px) {
-  .layout {
-    padding: 12px;
-  }
-
-  .stats-grid,
-  .tabs.tabs-wide {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .form {
-    grid-template-columns: 1fr;
-  }
-
-  .toolbar {
-    grid-template-columns: 1fr;
-  }
-
-  .topbar h1 {
-    font-size: 1.9rem;
-    line-height: 1.15;
-  }
-
-  .topbar-actions button,
-  .boton-consumir,
-  .boton-reponer {
+  .topbar-actions {
     width: 100%;
-  }
-
-  .item-recurso {
+    margin-left: 0;
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
-  .acciones-recurso {
-    justify-content: stretch;
+  .topbar-actions button {
+    width: 100%;
+    min-height: 50px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 12px;
   }
 
-  table {
-    min-width: 680px;
+  /* Dashboard superior: 2 columnas (6 tarjetas => 3 filas) */
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
   }
 
-  td:nth-child(3),
-  td:nth-child(4) {
-    white-space: normal;
+  .stat {
+    min-height: 104px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .stat span {
+    font-size: 1rem;
+  }
+
+  .stat strong {
+    font-size: 2rem;
+  }
+
+  /* Botones de módulos: 2 columnas */
+  .tabs.tabs-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+
+  .tabs.tabs-wide button {
+    min-height: 56px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 12px;
   }
 }
 
+/* Celulares chicos: mantener 2 columnas */
 @media (max-width: 420px) {
-  .stats-grid,
-  .tabs.tabs-wide {
-    grid-template-columns: 1fr;
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  table {
-    min-width: 620px;
+  .tabs.tabs-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
