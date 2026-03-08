@@ -1,6 +1,6 @@
 {
   "name": "tallercairo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Software para administrar un taller automotriz",
   "homepage": "https://github.com/DanielUrielMarquez/TallerCairoAutomotriz#readme",
   "bugs": {
@@ -11,23 +11,58 @@
     "url": "git+https://github.com/DanielUrielMarquez/TallerCairoAutomotriz.git"
   },
   "license": "ISC",
-  "author": "Matias Moralez y Uriel Marquez",
+  "author": "Juan Matias Moralez y Uriel Marquez",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --prefix server run dev",
-    "dev:client": "npm --prefix cliente start"
+    "dev:client": "npm --prefix cliente start",
+    "build:client": "npm --prefix cliente run build",
+    "desktop:dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"wait-on tcp:3000 tcp:4000 && electron electron/main.js\"",
+    "desktop:build": "npm run build:client && electron-builder --win nsis --config.win.signAndEditExecutable=false"
+  },
+  "build": {
+    "appId": "com.tallercairo.desktop",
+    "productName": "Taller Cairo",
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "cliente/build/**/*",
+      "server/src/**/*",
+      "package.json",
+      "server/.env"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "cliente/public/ingenieria-mecanica.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "@admin-bro/express": "^3.1.0",
     "admin-bro": "^4.0.1",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "express-formidable": "^1.2.0"
+    "express-formidable": "^1.2.0",
+    "pg": "^8.19.0"
   },
   "devDependencies": {
-    "concurrently": "^9.0.1"
+    "concurrently": "^9.0.1",
+    "electron": "^37.2.1",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.5"
   }
 }

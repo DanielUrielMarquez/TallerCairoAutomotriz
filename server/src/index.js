@@ -45,6 +45,10 @@ app.use((req, res, next) => {
 });
 
 // API
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
 app.use("/api/auth", authRouter);
 app.use("/api/clientes", clientesRouter);
 app.use("/api/vehiculos", vehiculosRouter);
