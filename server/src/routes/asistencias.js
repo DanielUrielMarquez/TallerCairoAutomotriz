@@ -4,6 +4,12 @@ const pool = require("../config/db");
 const router = Router();
 const ESTADOS = ["presente", "ausente", "tarde"];
 
+function fechaHoyArgentinaISO() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires"
+  }).format(new Date());
+}
+
 // Listar asistencias con filtro por fecha opcional
 router.get("/", async (req, res) => {
   try {
@@ -56,8 +62,9 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { trabajadorId, fecha, estado } = req.body;
+    const fechaFinal = fecha || fechaHoyArgentinaISO();
 
-    if (!trabajadorId || !fecha || !ESTADOS.includes(estado)) {
+    if (!trabajadorId || !ESTADOS.includes(estado)) {
       return res.status(400).json({ error: "Datos inválidos" });
     }
 
@@ -66,7 +73,7 @@ router.post("/", async (req, res) => {
 
     const dup = await pool.query(
       "SELECT 1 FROM asistencias WHERE trabajador_id = $1 AND fecha = $2",
-      [Number(trabajadorId), fecha]
+      [Number(trabajadorId), fechaFinal]
     );
     if (dup.rowCount) {
       return res.status(409).json({ error: "Ese trabajador ya tiene asistencia cargada en esa fecha" });
@@ -78,7 +85,7 @@ router.post("/", async (req, res) => {
       VALUES ($1, $2, $3)
       RETURNING id, trabajador_id AS "trabajadorId", fecha, estado
       `,
-      [Number(trabajadorId), fecha, estado]
+      [Number(trabajadorId), fechaFinal, estado]
     );
 
     res.status(201).json(rows[0]);

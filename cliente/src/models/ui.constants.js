@@ -1,5 +1,5 @@
 export const ESTADOS_TAREA = ["abierta", "en_proceso", "cerrada"];
-export const TABS_BASE = ["clientes", "vehiculos", "tareas", "mis_tareas", "recursos", "asistencia", "reportes"];
+export const TABS_BASE = ["clientes", "vehiculos", "ordenes", "tareas", "mis_tareas", "recursos", "asistencia", "reportes"];
 
 export const OPCIONES_TAREA = [
   "Cambio de aceite",

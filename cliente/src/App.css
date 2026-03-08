@@ -510,3 +510,83 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* Ordenes */
+.ordenes-form {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.ordenes-autocomplete {
+  position: relative;
+}
+
+.ordenes-autocomplete input {
+  width: 100%;
+}
+
+.ordenes-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #101827;
+  color: #fff;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 30;
+}
+
+.ordenes-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.ordenes-dropdown-item:hover {
+  background: #1d4ed8;
+}
+
+.ordenes-clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  padding: 0;
+  line-height: 1;
+  font-size: 16px;
+}
+
+.ordenes-clear-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.ordenes-btn-crear {
+  min-height: 44px;
+}
+
+@media (max-width: 1024px) {
+  .ordenes-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .ordenes-form {
+    grid-template-columns: 1fr;
+  }
+}

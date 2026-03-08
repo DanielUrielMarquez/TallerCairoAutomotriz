@@ -1,4 +1,11 @@
 function VehiculosPanel({ tab, busquedaVehiculo, setBusquedaVehiculo, cargarTodo, nuevoVehiculo, setNuevoVehiculo, crearVehiculo, clientes, vehiculos, cambiarEstadoVehiculo }) {
+  function formatearFechaSolo(raw) {
+    if (!raw) return "-";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return String(raw).slice(0, 10);
+    return d.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+  }
+
   return (
     <>
       {tab === "vehiculos" && (
@@ -41,26 +48,6 @@ function VehiculosPanel({ tab, busquedaVehiculo, setBusquedaVehiculo, cargarTodo
                     onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, patente: e.target.value })}
                   />
       
-                  <div className="date-field">
-                    <label htmlFor="vehiculo-fecha-entrada">Fecha de entrada</label>
-                    <input
-                      id="vehiculo-fecha-entrada"
-                      type="date"
-                      value={nuevoVehiculo.fechaEntrada}
-                      onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, fechaEntrada: e.target.value })}
-                    />
-                  </div>
-      
-                  <div className="date-field">
-                    <label htmlFor="vehiculo-fecha-limite">Fecha limite</label>
-                    <input
-                      id="vehiculo-fecha-limite"
-                      type="date"
-                      value={nuevoVehiculo.fechaLimite}
-                      onChange={(e) => setNuevoVehiculo({ ...nuevoVehiculo, fechaLimite: e.target.value })}
-                    />
-                  </div>
-      
                   <button type="submit">Agregar</button>
                 </form>
       
@@ -73,7 +60,6 @@ function VehiculosPanel({ tab, busquedaVehiculo, setBusquedaVehiculo, cargarTodo
                       <th>Modelo</th>
                       <th>Cliente</th>
                       <th>Entrada</th>
-                      <th>Limite</th>
                       <th>Estado</th>
                     </tr>
                   </thead>
@@ -85,8 +71,7 @@ function VehiculosPanel({ tab, busquedaVehiculo, setBusquedaVehiculo, cargarTodo
                         <td>{v.marca}</td>
                         <td>{v.modelo}</td>
                         <td>{v.cliente?.nombre || "N/A"}</td>
-                        <td>{v.fechaEntrada}</td>
-                        <td>{v.fechaLimite}</td>
+                        <td>{formatearFechaSolo(v.fechaEntrada)}</td>
                         <td>
                           <select
                             value={v.estado}

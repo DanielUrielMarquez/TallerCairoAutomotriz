@@ -1,4 +1,12 @@
 function AsistenciaPanel({ tab, resumenAsistencia, filtroAsistenciaFecha, setFiltroAsistenciaFecha, cargarTodo, nuevaAsistencia, setNuevaAsistencia, trabajadores, crearAsistencia, asistencias }) {
+  const formatFecha = (fecha) => {
+    if (!fecha) return "-";
+    const isoDate = String(fecha).slice(0, 10);
+    const [y, m, d] = isoDate.split("-");
+    if (!y || !m || !d) return String(fecha);
+    return `${d}/${m}/${y}`;
+  };
+
   return (
     <>
       {tab === "asistencia" && (
@@ -41,12 +49,6 @@ function AsistenciaPanel({ tab, resumenAsistencia, filtroAsistenciaFecha, setFil
                       <option key={w.id} value={w.id}>{w.nombre}</option>
                     ))}
                   </select>
-      
-                  <input
-                    type="date"
-                    value={nuevaAsistencia.fecha}
-                    onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, fecha: e.target.value })}
-                  />
                   <select
                     value={nuevaAsistencia.estado}
                     onChange={(e) => setNuevaAsistencia({ ...nuevaAsistencia, estado: e.target.value })}
@@ -57,12 +59,29 @@ function AsistenciaPanel({ tab, resumenAsistencia, filtroAsistenciaFecha, setFil
                   </select>
                   <button type="submit">Registrar</button>
                 </form>
-      
-                <ul className="list">
-                  {asistencias.map((a) => (
-                    <li key={a.id}>{a.fecha} - {a.trabajador?.nombre || a.trabajadorId} - {a.estado}</li>
-                  ))}
-                </ul>
+
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Trabajador</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {asistencias.map((a) => (
+                        <tr key={a.id}>
+                          <td>#{a.id}</td>
+                          <td>{formatFecha(a.fecha)}</td>
+                          <td>{a.trabajador?.nombre || a.trabajadorId}</td>
+                          <td>{a.estado}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             )}
     </>

@@ -130,4 +130,19 @@ export const api = {
       body: JSON.stringify({ adminUser })
     }),
 
+  // Ordenes de trabajo
+  getOrdenes: async () => request("/api/ordenes"),
+  createOrden: async (data) =>
+    request("/api/ordenes", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data)
+    }),
+  getMarcas: async (q = "") =>
+    request(`/api/ordenes/catalogo/marcas?q=${encodeURIComponent(q)}`),
+  getModelos: async (marcaId, q = "") =>
+    request(`/api/ordenes/catalogo/modelos?marcaId=${encodeURIComponent(marcaId)}&q=${encodeURIComponent(q)}`),
+  getRepuestosCompatibles: async (modeloId, q = "") =>
+    request(`/api/ordenes/catalogo/repuestos?modeloId=${encodeURIComponent(modeloId)}&q=${encodeURIComponent(q)}`),
+
 };

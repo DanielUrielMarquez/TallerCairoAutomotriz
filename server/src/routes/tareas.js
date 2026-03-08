@@ -10,6 +10,7 @@ router.get("/", async (_req, res) => {
     const { rows } = await pool.query(`
       SELECT
         t.id,
+        t.orden_id AS "ordenId",
         t.vehiculo_id AS "vehiculoId",
         t.trabajador_id AS "trabajadorId",
         t.descripcion,
@@ -17,12 +18,14 @@ router.get("/", async (_req, res) => {
         t.prioridad,
         t.fecha_limite AS "fechaLimite",
         t.total,
+        COALESCE(o.created_at, t.created_at) AS "fechaHora",
         v.id AS "v_id",
         v.patente AS "v_patente",
         w.id AS "w_id",
         w.nombre AS "w_nombre",
         w.especialidad AS "w_especialidad"
       FROM tareas t
+      LEFT JOIN ordenes o ON o.id = t.orden_id
       JOIN vehiculos v ON v.id = t.vehiculo_id
       JOIN trabajadores w ON w.id = t.trabajador_id
       ORDER BY t.id
@@ -30,6 +33,7 @@ router.get("/", async (_req, res) => {
 
     const data = rows.map((r) => ({
       id: r.id,
+      ordenId: r.ordenId,
       vehiculoId: r.vehiculoId,
       trabajadorId: r.trabajadorId,
       descripcion: r.descripcion,
@@ -37,6 +41,7 @@ router.get("/", async (_req, res) => {
       prioridad: r.prioridad,
       fechaLimite: r.fechaLimite,
       total: Number(r.total || 0),
+      fechaHora: r.fechaHora,
       vehiculo: {
         id: r.v_id,
         patente: r.v_patente
@@ -57,7 +62,7 @@ router.get("/", async (_req, res) => {
 // Crear tarea
 router.post("/", async (req, res) => {
   try {
-    const { vehiculoId, trabajadorId, descripcion, prioridad, fechaLimite, total } = req.body;
+    const { ordenId, vehiculoId, trabajadorId, descripcion, prioridad, fechaLimite, total } = req.body;
 
     if (!vehiculoId || !trabajadorId || !descripcion || !fechaLimite) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
@@ -68,15 +73,20 @@ router.post("/", async (req, res) => {
     if (!vehiculo.rowCount || !trabajador.rowCount) {
       return res.status(400).json({ error: "vehiculoId o trabajadorId inválido" });
     }
+    if (ordenId) {
+      const orden = await pool.query("SELECT id FROM ordenes WHERE id = $1", [Number(ordenId)]);
+      if (!orden.rowCount) return res.status(400).json({ error: "ordenId inválido" });
+    }
 
     const insert = await pool.query(
       `
       INSERT INTO tareas (
-        vehiculo_id, trabajador_id, descripcion, estado, prioridad, fecha_limite, total
+        orden_id, vehiculo_id, trabajador_id, descripcion, estado, prioridad, fecha_limite, total
       )
-      VALUES ($1, $2, $3, 'abierta', $4, $5, $6)
+      VALUES ($1, $2, $3, $4, 'abierta', $5, $6, $7)
       RETURNING
         id,
+        orden_id AS "ordenId",
         vehiculo_id AS "vehiculoId",
         trabajador_id AS "trabajadorId",
         descripcion,
@@ -86,6 +96,7 @@ router.post("/", async (req, res) => {
         total
       `,
       [
+        ordenId ? Number(ordenId) : null,
         Number(vehiculoId),
         Number(trabajadorId),
         descripcion,
@@ -118,6 +129,7 @@ router.patch("/:id/estado", async (req, res) => {
       WHERE id = $2
       RETURNING
         id,
+        orden_id AS "ordenId",
         vehiculo_id AS "vehiculoId",
         trabajador_id AS "trabajadorId",
         descripcion,
@@ -131,7 +143,17 @@ router.patch("/:id/estado", async (req, res) => {
 
     if (!update.rowCount) return res.status(404).json({ error: "Tarea no encontrada" });
 
-    res.json(update.rows[0]);
+    const tareaActualizada = update.rows[0];
+    if (tareaActualizada.ordenId) {
+      await pool.query(
+        `UPDATE ordenes
+         SET estado = $1
+         WHERE id = $2`,
+        [estado, Number(tareaActualizada.ordenId)]
+      );
+    }
+
+    res.json(tareaActualizada);
   } catch {
     res.status(500).json({ error: "Error al actualizar estado de tarea" });
   }

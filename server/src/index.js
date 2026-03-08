@@ -13,6 +13,8 @@ const asistenciasRouter = require("./routes/asistencias");
 const reportesRouter = require("./routes/reportes");
 const usuariosRouter = require("./routes/usuarios");
 const trabajadoresRouter = require("./routes/trabajadores");
+const ordenesRouter = require("./routes/ordenes");
+const catalogoRouter = require("./routes/catalogo");
 
 
 const app = express();
@@ -58,6 +60,8 @@ app.use("/api/asistencias", asistenciasRouter);
 app.use("/api/reportes", reportesRouter);
 app.use("/api/usuarios", usuariosRouter);
 app.use("/api/trabajadores", trabajadoresRouter);
+app.use("/api/ordenes", ordenesRouter);
+app.use("/api/catalogo", catalogoRouter);
 
 
 

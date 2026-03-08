@@ -13,6 +13,7 @@ import TabsNav from "./components/layout/tabsNav";
 import StatusMessages from "./components/common/statusMessages";
 import ClientesPanel from "./components/panels/clientesPanel";
 import VehiculosPanel from "./components/panels/vehiculosPanel";
+import OrdenesPanel from "./components/panels/ordenesPanel";
 import TareasPanel from "./components/panels/tareasPanel";
 import RecursosPanel from "./components/panels/recursosPanel";
 import AsistenciaPanel from "./components/panels/asistenciaPanel";
@@ -42,7 +43,9 @@ function App() {
 const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ setTab });
 
   const esAdmin = usuario?.rol === "administrador";
-  const tabsVisibles = esAdmin ? [...TABS_BASE, "usuarios"] : TABS_BASE;
+  const tabsVisibles = esAdmin
+    ? [...TABS_BASE, "usuarios"]
+    : TABS_BASE.filter((t) => t !== "tareas");
   
   const [nuevoCliente, setNuevoCliente] = useState({ nombre: "", telefono: "", email: "" });
 
@@ -51,9 +54,7 @@ const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ se
     clienteId: "",
     marca: "",
     modelo: "",
-    patente: "",
-    fechaEntrada: "",
-    fechaLimite: ""
+    patente: ""
   });
 
   const [nuevaTarea, setNuevaTarea] = useState({
@@ -75,7 +76,6 @@ const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ se
 
   const [nuevaAsistencia, setNuevaAsistencia] = useState({
     trabajadorId: "",
-    fecha: "",
     estado: "presente"
   });
 
@@ -91,6 +91,10 @@ const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ se
   useEffect(() => {
   localStorage.setItem("tab_actual", tab);
 }, [tab]);
+
+  useEffect(() => {
+    if (!esAdmin && tab === "tareas") setTab("mis_tareas");
+  }, [esAdmin, tab]);
 
  const {
   loading,
@@ -154,6 +158,12 @@ const trabajadorPorUsuario = useMemo(
   () => buildTrabajadorPorUsuario(trabajadores),
   [trabajadores]
 );
+
+useEffect(() => {
+  if (!nuevaAsistencia.trabajadorId && trabajadores.length) {
+    setNuevaAsistencia((prev) => ({ ...prev, trabajadorId: String(trabajadores[0].id) }));
+  }
+}, [trabajadores, nuevaAsistencia.trabajadorId]);
 
 const {
   crearCliente,
@@ -220,7 +230,7 @@ const {
   crearCliente={crearCliente}
   clientes={clientes}/>
 
-      <VehiculosPanel
+<VehiculosPanel
   tab={tab}
   busquedaVehiculo={busquedaVehiculo}
   setBusquedaVehiculo={setBusquedaVehiculo}
@@ -232,21 +242,30 @@ const {
   vehiculos={vehiculos}
   cambiarEstadoVehiculo={cambiarEstadoVehiculo}
 />
-<TareasPanel
+<OrdenesPanel
   tab={tab}
-  nuevaTarea={nuevaTarea}
-  setNuevaTarea={setNuevaTarea}
-  otraDescripcionTarea={otraDescripcionTarea}
-  setOtraDescripcionTarea={setOtraDescripcionTarea}
-  crearTarea={crearTarea}
+  clientes={clientes}
   vehiculos={vehiculos}
   trabajadores={trabajadores}
-  cambiarEstadoTarea={cambiarEstadoTarea}
-  tareas={tareas}
-  totalTareas={totalTareas}
-  ESTADOS_TAREA={ESTADOS_TAREA}
-  OPCIONES_TAREA={OPCIONES_TAREA}
+  setError={setError}
 />
+<RequireRole allow={esAdmin && tab === "tareas"}>
+  <TareasPanel
+    tab={tab}
+    nuevaTarea={nuevaTarea}
+    setNuevaTarea={setNuevaTarea}
+    otraDescripcionTarea={otraDescripcionTarea}
+    setOtraDescripcionTarea={setOtraDescripcionTarea}
+    crearTarea={crearTarea}
+    vehiculos={vehiculos}
+    trabajadores={trabajadores}
+    cambiarEstadoTarea={cambiarEstadoTarea}
+    tareas={tareas}
+    totalTareas={totalTareas}
+    ESTADOS_TAREA={ESTADOS_TAREA}
+    OPCIONES_TAREA={OPCIONES_TAREA}
+  />
+</RequireRole>
 <RecursosPanel
   tab={tab}
   nuevoRecurso={nuevoRecurso}
@@ -294,6 +313,8 @@ const {
   usuario={usuario}
   tareas={tareas}
   trabajadorPorUsuario={trabajadorPorUsuario}
+  cambiarEstadoTarea={cambiarEstadoTarea}
+  ESTADOS_TAREA={ESTADOS_TAREA}
 />
 
 {mostrarStockBajoModal && (

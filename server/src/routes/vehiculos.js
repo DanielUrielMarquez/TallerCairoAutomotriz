@@ -70,23 +70,69 @@ router.get("/", async (req, res) => {
 
 // Crear vehículo
 router.post("/", async (req, res) => {
+  const client = await pool.connect();
   try {
     const { clienteId, marca, modelo, patente, fechaEntrada, fechaLimite } = req.body;
 
-    if (!clienteId || !marca || !modelo || !patente || !fechaEntrada || !fechaLimite) {
+    if (!clienteId || !marca || !modelo || !patente) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    const cliente = await pool.query("SELECT id FROM clientes WHERE id = $1", [Number(clienteId)]);
+    const cliente = await client.query("SELECT id FROM clientes WHERE id = $1", [Number(clienteId)]);
     if (!cliente.rowCount) return res.status(400).json({ error: "clienteId inválido" });
 
-    const existe = await pool.query(
+    const existe = await client.query(
       "SELECT 1 FROM vehiculos WHERE UPPER(patente) = UPPER($1)",
       [patente]
     );
     if (existe.rowCount) return res.status(409).json({ error: "La patente ya existe" });
 
-    const insert = await pool.query(
+    const fechaEntradaFinal =
+      fechaEntrada ||
+      new Date().toLocaleDateString("en-CA", {
+        timeZone: "America/Argentina/Buenos_Aires"
+      });
+    const fechaLimiteFinal = fechaLimite || fechaEntradaFinal;
+
+    await client.query("BEGIN");
+
+    const marcaNormalizada = String(marca || "").trim();
+    const modeloNormalizado = String(modelo || "").trim();
+
+    let marcaCatalogo = await client.query(
+      `SELECT id, nombre
+       FROM catalogo_marcas
+       WHERE LOWER(nombre) = LOWER($1)
+       LIMIT 1`,
+      [marcaNormalizada]
+    );
+    if (!marcaCatalogo.rowCount) {
+      marcaCatalogo = await client.query(
+        `INSERT INTO catalogo_marcas (nombre)
+         VALUES ($1)
+         RETURNING id, nombre`,
+        [marcaNormalizada]
+      );
+    }
+    const marcaId = Number(marcaCatalogo.rows[0].id);
+
+    const modeloCatalogo = await client.query(
+      `SELECT id
+       FROM catalogo_modelos
+       WHERE marca_id = $1
+         AND LOWER(nombre) = LOWER($2)
+       LIMIT 1`,
+      [marcaId, modeloNormalizado]
+    );
+    if (!modeloCatalogo.rowCount) {
+      await client.query(
+        `INSERT INTO catalogo_modelos (marca_id, nombre)
+         VALUES ($1, $2)`,
+        [marcaId, modeloNormalizado]
+      );
+    }
+
+    const insert = await client.query(
       `
       INSERT INTO vehiculos (
         cliente_id, marca, modelo, patente, fecha_entrada, fecha_limite, fecha_salida, estado
@@ -103,12 +149,18 @@ router.post("/", async (req, res) => {
         fecha_salida AS "fechaSalida",
         estado
       `,
-      [Number(clienteId), marca, modelo, patente, fechaEntrada, fechaLimite]
+      [Number(clienteId), marcaNormalizada, modeloNormalizado, patente, fechaEntradaFinal, fechaLimiteFinal]
     );
 
+    await client.query("COMMIT");
     res.status(201).json(insert.rows[0]);
   } catch {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
     res.status(500).json({ error: "Error al crear vehículo" });
+  } finally {
+    client.release();
   }
 });
 

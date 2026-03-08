@@ -44,8 +44,6 @@ export function useWorkshopAct({
       marca: "",
       modelo: "",
       patente: "",
-      fechaEntrada: "",
-      fechaLimite: "",
     });
 
     cargarTodo();
@@ -129,7 +127,6 @@ export function useWorkshopAct({
 
     setNuevaAsistencia({
       trabajadorId: trabajadores.length ? String(trabajadores[0].id) : "",
-      fecha: "",
       estado: "presente",
     });
 
