@@ -5,7 +5,15 @@ import { OPCIONES_TAREA } from "../../models/ui.constants";
 const VEHICULO_NUEVO = "__nuevo__";
 const CLIENTE_NUEVO = "__nuevo_cliente__";
 
-function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
+function OrdenesPanel({
+  tab,
+  usuario,
+  trabajadorPorUsuario,
+  clientes,
+  vehiculos,
+  trabajadores,
+  setError
+}) {
   const [ordenes, setOrdenes] = useState([]);
   const [marcas, setMarcas] = useState([]);
   const [modelos, setModelos] = useState([]);
@@ -42,6 +50,10 @@ function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
   const esClienteNuevo = form.clienteId === CLIENTE_NUEVO;
   const esVehiculoNuevo = form.vehiculoId === VEHICULO_NUEVO;
   const usaVehiculoExistente = Boolean(form.vehiculoId) && !esVehiculoNuevo;
+  const esTrabajador = usuario?.rol === "trabajador";
+  const trabajadorLogueado = esTrabajador
+    ? trabajadorPorUsuario?.[usuario?.id]
+    : null;
 
   const totalManoObra = useMemo(() => {
     const h = Number(form.horasEstimadas || 0);
@@ -95,6 +107,17 @@ function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
     cargarOrdenes();
     cargarMarcas(busquedaMarca);
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "ordenes") return;
+    if (!esTrabajador) return;
+    if (!trabajadorLogueado?.id) return;
+
+    setForm((prev) => ({
+      ...prev,
+      trabajadorId: String(trabajadorLogueado.id)
+    }));
+  }, [tab, esTrabajador, trabajadorLogueado?.id]);
 
   useEffect(() => {
     if (tab !== "ordenes") return;
@@ -294,7 +317,7 @@ function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
         : form.descripcionTrabajo;
 
     if (!form.clienteId) return setError("Seleccioná un cliente");
-    if (!form.trabajadorId) return setError("Seleccioná un trabajador");
+    if (!form.trabajadorId && !trabajadorLogueado?.id) return setError("Seleccioná un trabajador");
     if (!descripcionFinal) return setError("La descripcion del trabajo es obligatoria");
 
     let clienteIdFinal = Number(form.clienteId);
@@ -342,10 +365,18 @@ function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
       vehiculoIdFinal = Number(creado.id);
     }
 
+    const trabajadorIdFinal = esTrabajador
+      ? Number(trabajadorLogueado?.id || 0)
+      : Number(form.trabajadorId);
+
+    if (!trabajadorIdFinal) {
+      return setError("Tu usuario no tiene trabajador asociado. Contactá al administrador.");
+    }
+
     const payload = {
       clienteId: clienteIdFinal,
       vehiculoId: vehiculoIdFinal,
-      trabajadorId: Number(form.trabajadorId),
+      trabajadorId: trabajadorIdFinal,
       descripcionTrabajo: descripcionFinal,
       horasEstimadas: Number(form.horasEstimadas || 0),
       valorHora: Number(form.valorHora || 0),
@@ -488,6 +519,7 @@ function OrdenesPanel({ tab, clientes, vehiculos, trabajadores, setError }) {
         <select
           value={form.trabajadorId}
           onChange={(e) => setForm({ ...form, trabajadorId: e.target.value })}
+          disabled={esTrabajador}
         >
           <option value="">Trabajador</option>
           {trabajadores.map((t) => (

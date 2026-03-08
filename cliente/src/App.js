@@ -244,6 +244,8 @@ const {
 />
 <OrdenesPanel
   tab={tab}
+  usuario={usuario}
+  trabajadorPorUsuario={trabajadorPorUsuario}
   clientes={clientes}
   vehiculos={vehiculos}
   trabajadores={trabajadores}

@@ -18,7 +18,10 @@ router.get("/", async (_req, res) => {
         t.prioridad,
         t.fecha_limite AS "fechaLimite",
         t.total,
-        COALESCE(o.created_at, t.created_at) AS "fechaHora",
+        TO_CHAR(
+          ((COALESCE(o.created_at, t.created_at) AT TIME ZONE 'UTC') AT TIME ZONE 'America/Argentina/Buenos_Aires'),
+          'YYYY-MM-DD HH24:MI:SS'
+        ) AS "fechaHora",
         v.id AS "v_id",
         v.patente AS "v_patente",
         w.id AS "w_id",
@@ -28,7 +31,7 @@ router.get("/", async (_req, res) => {
       LEFT JOIN ordenes o ON o.id = t.orden_id
       JOIN vehiculos v ON v.id = t.vehiculo_id
       JOIN trabajadores w ON w.id = t.trabajador_id
-      ORDER BY t.id
+      ORDER BY COALESCE(o.created_at, t.created_at) DESC, t.id DESC
     `);
 
     const data = rows.map((r) => ({

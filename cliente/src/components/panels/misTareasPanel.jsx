@@ -30,8 +30,19 @@ function MisTareasPanel({
       null;
     if (!raw) return "-";
 
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return "-";
+    const str = String(raw);
+    const match = str
+      .replace("T", " ")
+      .replace("Z", "")
+      .match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?/);
+
+    if (match) {
+      const [, y, m, d, hh, mm, ss = "00"] = match;
+      return `${d}/${m}/${y}, ${hh}:${mm}:${ss}`;
+    }
+
+    const d = new Date(str);
+    if (Number.isNaN(d.getTime())) return str;
 
     return d.toLocaleString("es-AR", {
       timeZone: "America/Argentina/Buenos_Aires"
