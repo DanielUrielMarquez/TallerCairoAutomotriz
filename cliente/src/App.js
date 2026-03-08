@@ -23,7 +23,12 @@ import RequireRole from "./guards/requireRole";
 import { useDashboardData } from "./services/useDashboardData";
 import { useAuth } from "./services/useAuth";
 import { useWorkshopAct } from "./services/useWorkshopAct";
-import { exportRecursosToExcel, parseRecursosFromExcel } from "./services/excel";
+import {
+  exportRecursosToExcel,
+  parseRecursosFromExcel,
+  exportErroresImportacionToExcel,
+  exportResumenToExcel,
+} from "./services/excel";
 import { api } from "./services/api";
 
 
@@ -102,11 +107,16 @@ const { usuario, loginForm, setLoginForm, onLogin, cerrarSesion } = useAuth({ se
   busquedaVehiculo,
   filtroAsistenciaFecha,
 });
+  const [resultadoImportacion, setResultadoImportacion] = useState(null);
 
 async function handleLogin(e) {
   const loginError = await onLogin(e);
   if (loginError) setError(loginError);
 }
+function exportarResumen() {
+  exportResumenToExcel(resumen, totalTareas);
+}
+
 
 function handleLogout() {
   cerrarSesion();
@@ -228,7 +238,7 @@ const {
   reponerRecurso={reponerRecurso}
   exportarRecursos={exportarRecursos}
   importarRecursosExcel={importarRecursosExcel}
-
+  resultadoImportacion={resultadoImportacion}
 />
 <AsistenciaPanel
   tab={tab}
@@ -242,7 +252,12 @@ const {
   crearAsistencia={crearAsistencia}
   asistencias={asistencias}
 />
-<ReportesPanel tab={tab} resumen={resumen} totalTareas={totalTareas} />
+<ReportesPanel
+  tab={tab}
+  resumen={resumen}
+  totalTareas={totalTareas}
+  exportarResumen={exportarResumen}
+/>
 <RequireRole allow={esAdmin && tab === "usuarios"}>
   <UsuariosPanel
     tab={tab}
@@ -262,31 +277,62 @@ const {
   exportRecursosToExcel(recursos);
 }
 async function importarRecursosExcel(file) {
+  setResultadoImportacion(null);
   try {
     setError("");
-    const items = await parseRecursosFromExcel(file);
 
-    const validos = items.filter(
-      (r) =>
-        r.nombre &&
-        ["repuesto", "insumo", "herramienta"].includes(r.tipo) &&
-        Number.isFinite(r.stock) &&
-        Number.isFinite(r.minimo)
-    );
+    const { ok, errores, total } = await parseRecursosFromExcel(file);
 
-    if (!validos.length) {
-      return setError("El archivo no contiene filas válidas.");
+    if (!ok.length) {
+      setResultadoImportacion({
+        total,
+        importadas: 0,
+        fallidas: errores.length,
+      });
+      return setError(
+        `Archivo sin filas válidas. Total: ${total}. Con error: ${errores.length}.`
+      );
     }
 
-    for (const recurso of validos) {
+    let importadas = 0;
+    const erroresImportacion = [...errores];
+
+    for (const recurso of ok) {
       const res = await api.createRecurso(recurso);
       if (res.error) {
-        setError(`Error importando "${recurso.nombre}": ${res.error}`);
-        break;
+        erroresImportacion.push({
+          fila: "-",
+          motivo: `API: ${res.error}`,
+          original: recurso,
+        });
+      } else {
+        importadas += 1;
       }
     }
 
     await cargarTodo();
+
+    if (erroresImportacion.length) {
+      setResultadoImportacion({
+        total,
+        importadas,
+        fallidas: erroresImportacion.length,
+      });
+      setError(
+        `Importación parcial: ${importadas}/${total} filas importadas. ` +
+          `Fallidas: ${erroresImportacion.length}.`
+      );
+      exportErroresImportacionToExcel(erroresImportacion);
+      console.table(erroresImportacion);
+      return;
+    }
+
+    setResultadoImportacion({
+      total,
+      importadas,
+      fallidas: 0,
+    });
+    setError("");
   } catch {
     setError("No se pudo leer el archivo Excel.");
   }

@@ -9,7 +9,8 @@ function RecursosPanel({
   consumirRecurso,
   reponerRecurso,
   exportarRecursos,
-  importarRecursosExcel
+  importarRecursosExcel,
+  resultadoImportacion,
 }) {
   const [archivoExcel, setArchivoExcel] = useState(null);
 
@@ -74,6 +75,12 @@ function RecursosPanel({
                     Importar Excel
                   </button>
                 </div>
+
+                {resultadoImportacion && (
+                  <div className="estado-importacion">
+                    Total: {resultadoImportacion.total} | Importadas: {resultadoImportacion.importadas} | Fallidas: {resultadoImportacion.fallidas}
+                  </div>
+                )}
 
                 <ul className="lista-recursos">
                   {recursos.map((r) => (
