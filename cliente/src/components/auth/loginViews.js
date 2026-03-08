@@ -21,7 +21,6 @@ function LoginView({ loginForm, setLoginForm, onLogin, error }) {
         </form>
 
         {error && <p className="error">{error}</p>}
-        <small>Demo: admin / 1234</small>
       </section>
     </main>
   );
