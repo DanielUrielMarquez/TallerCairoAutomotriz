@@ -31,6 +31,8 @@ import {
   exportPedidoMayoristaToExcel,
 } from "./services/excel";
 import { api } from "./services/api";
+import MisTareasPanel from "./components/panels/misTareasPanel";
+
 
 
 
@@ -287,6 +289,12 @@ const {
     eliminarTrabajador={eliminarTrabajador}
   />
 </RequireRole>
+<MisTareasPanel
+  tab={tab}
+  usuario={usuario}
+  tareas={tareas}
+  trabajadorPorUsuario={trabajadorPorUsuario}
+/>
 
 {mostrarStockBajoModal && (
   <section className="card">

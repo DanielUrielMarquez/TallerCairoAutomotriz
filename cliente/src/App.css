@@ -1,7 +1,7 @@
 :root {
   --bg: #eef2f7;
   --surface: #ffffff;
-  --line: #d6dee8;
+  --line: #b8c4d3;
   --text: #1f2937;
   --muted: #64748b;
   --brand: #1f65c9;
@@ -104,10 +104,10 @@ body {
 .card {
   width: 100%;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
   overflow: hidden;
 }
 
@@ -138,7 +138,7 @@ button {
   font: inherit;
   padding: 10px 11px;
   border-radius: 10px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   outline: none;
 }
 
@@ -204,9 +204,10 @@ button:hover {
 
 .stat {
   background: #fff;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 12px;
   padding: 12px 10px;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.07);
 }
 
 .stat span {
@@ -258,9 +259,10 @@ table {
   border-collapse: collapse;
   margin-top: 10px;
   background: #fff;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 th,
@@ -346,9 +348,10 @@ th {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 10px;
   background: #fff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
 }
 
 .recurso-texto {
