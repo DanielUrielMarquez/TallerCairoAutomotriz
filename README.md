@@ -1,0 +1,1 @@
+Sistema full-stack para la gestión integral de talleres automotrices. Desarrollado con React para el frontend, Node.js y Express para la API REST, PostgreSQL como base de datos y Electron para su integración como aplicación de escritorio en Windows. Incluye gestión de clientes y trabajadores.
